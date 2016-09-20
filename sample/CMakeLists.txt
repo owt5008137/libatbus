@@ -1,6 +1,6 @@
 ﻿
 
-EchoWithColor(COLOR GREEN "-- Configure Sample Projects")
+EchoWithColor(COLOR GREEN "-- Configure ${CMAKE_CURRENT_LIST_DIR}")
 
 # ============ sample - [...] ============
 
@@ -15,11 +15,11 @@ set(EXECUTABLE_OUTPUT_PATH "${PROJECT_BINARY_DIR}/sample")
 
 foreach(SAMPLE_SRC_FILE IN LISTS SAMPLE_SRC_LIST)
     get_filename_component(SAMPLE_SRC_BIN_NAME "${SAMPLE_SRC_FILE}" NAME_WE)
-    
+
     add_executable("${SAMPLE_SRC_BIN_NAME}" ${SAMPLE_SRC_FILE})
-    target_link_libraries("${SAMPLE_SRC_BIN_NAME}" 
-	    ${PROJECT_LIB_LINK} 
+    target_link_libraries("${SAMPLE_SRC_BIN_NAME}"
+	    ${PROJECT_LIB_LINK}
 		${3RD_PARTY_LIBUV_LINK_NAME}
-        ${3RD_PARTY_C_CPP_UTILS_LINK_NAME}
+        ${3RD_PARTY_ATFRAME_UTILS_LINK_NAME}
     )
 endforeach()

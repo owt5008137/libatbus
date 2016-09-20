@@ -3,51 +3,83 @@ language: cpp
 env:
   global:
     - LANG="zh_CN.UTF-8"
-    - CMAKE_PREFIX=$HOME/prebuilt/cmake ;
-    - CMAKE_VERSION=3.5.1 ;
-    - LIBUV_PREFIX=$HOME/prebuilt/libuv/1.9.0 ;
-    - LIBUV_VERSION=1.9.0;
-    - MSGPACK_PREFIX=$HOME/prebuilt/msgpack/1.4.1 ;
-    - MSGPACK_VERSION=1.4.1 ;
-
-  matrix:
-    - TRAVIS_OS_NAME=osx USE_CC=gcc USE_CXX=g++
-    - TRAVIS_OS_NAME=linux USE_CC=gcc USE_CXX=g++
-    - TRAVIS_OS_NAME=linux USE_CC=gcc-4.9 USE_CXX=g++-4.9
-    - TRAVIS_OS_NAME=linux USE_CC=gcc-5 USE_CXX=g++-5
-    - TRAVIS_OS_NAME=linux USE_CC=clang-3.8 USE_CXX=clang++-3.8
+    - MSGPACK_PREFIX=$HOME/prebuilt/msgpack-2.0.0 ;
+    - MSGPACK_VERSION=2.0.0 ;
+    - LIBUV_PREFIX=$HOME/prebuilt/libuv-1.9.1 ;
+    - LIBUV_VERSION=1.9.1
+matrix:
+  include:
+    - os: osx
+      env: USE_CC=clang USE_CXX=clang++
+    - os: osx
+      env: USE_CC=gcc USE_CXX=g++
+    - os: linux
+      dist: trusty
+      sudo: required
+      env: USE_CC=gcc USE_CXX=g++
+    - os: linux
+      dist: trusty
+      sudo: required
+      env: USE_CC=gcc-4.4 USE_CXX=g++-4.4 MSGPACK_VERSION=1.4.2
+    - os: linux
+      dist: trusty
+      sudo: required
+      env: USE_CC=gcc-4.9 USE_CXX=g++-4.9
+    - os: linux
+      dist: trusty
+      sudo: required
+      env: USE_CC=gcc-6 USE_CXX=g++-6
+    - os: linux
+      dist: trusty
+      sudo: required
+      env: USE_CC=clang USE_CXX=clang++
+    # - os: linux
+    #   dist: trusty
+    #   sudo: required
+    #   env: USE_CC=clang-3.8 USE_CXX=clang++-3.8
 
 addons:
   apt:
     sources:
       - ubuntu-toolchain-r-test
-      - llvm-toolchain-precise-3.8
+      - ppa:george-edison55/cmake-3.x
+      # - sourceline: 'deb http://apt.llvm.org/trusty/ llvm-toolchain-trusty-3.8 main'
+      #   key_url: 'http://apt.llvm.org/llvm-snapshot.gpg.key'
+
     packages:
+      - g++-4.4
+      - g++-4.4-multilib
+      - gcc-4.4
+      - gcc-4.4-multilib
       - gcc-4.9
       - gcc-4.9-multilib
       - g++-4.9
       - g++-4.9-multilib
-      - gcc-5
-      - gcc-5-multilib
-      - g++-5
-      - g++-5-multilib
+      - gcc-6
+      - gcc-6-multilib
+      - g++-6
+      - g++-6-multilib
       - clang
-      # - libc++1
-      # - libc++-dev
-      # - libc++abi1
-      # - libc++abi-dev
-      - clang-3.8
-      - libclang-common-3.8-dev
-      - libclang-3.8-dev
+      ## - libc++1
+      ## - libc++-dev
+      ## - libc++abi1
+      ## - libc++abi-dev
+      # - clang-3.8
+      # - libclang-common-3.8-dev
+      # - libclang-3.8-dev
 
-# before_install:
+before_install:
+    - if [ "$TRAVIS_OS_NAME" == "linux" ]; then sudo apt-get -qq update; fi
+    - if [ "$TRAVIS_OS_NAME" == "osx" ]; then brew update; fi
 #   - if [ "$TRAVIS_OS_NAME" == "linux" ]; then sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test; fi
 #   - if [ "$TRAVIS_OS_NAME" == "linux" ]; then sudo add-apt-repository -y "deb http://llvm.org/apt/precise/ llvm-toolchain-precise-3.7 main"; fi
 #   - if [ "$TRAVIS_OS_NAME" == "linux" ]; then wget -O - http://llvm.org/apt/llvm-snapshot.gpg.key | sudo apt-key add - ; fi
 #   - if [ "$TRAVIS_OS_NAME" == "linux" ]; then sudo apt-get update -qq; fi
 #   - if [ "$TRAVIS_OS_NAME" == "linux" ]; then sudo apt-get update; fi
-#
-# install:
+
+install:
+    - if [ "$TRAVIS_OS_NAME" == "linux" ] ; then sudo apt-get install -qq -y cmake; fi
+    - if [ "$TRAVIS_OS_NAME" == "osx" ] ; then brew upgrade cmake; brew install --HEAD libuv; fi
 #   - if [ "$TRAVIS_OS_NAME" == "linux" ] && [ "$USE_CC" == "gcc-4.9" ] ; then sudo apt-get install -qq gcc-4.9-multilib g++-4.9-multilib; fi
 #   - if [ "$TRAVIS_OS_NAME" == "linux" ] && [ "$USE_CC" == "clang-3.7" ] ; then sudo apt-get install --allow-unauthenticated -qq clang-3.7; fi
 
@@ -62,33 +94,31 @@ before_script:
         rm -rf msgpack-$MSGPACK_VERSION msgpack-$MSGPACK_VERSION.tar.gz ;
     fi
   - if [ ! -e "$LIBUV_PREFIX/include/uv.h" ] || [ ! -e "$LIBUV_PREFIX/lib/libuv.so" ] ; then
-        mkdir -p "$LIBUV_PREFIX";
-        wget -c "http://dist.libuv.org/dist/v$LIBUV_VERSION/libuv-v$LIBUV_VERSION.tar.gz" -O libuv-v$LIBUV_VERSION.tar.gz;
-        tar -xvf libuv-v$LIBUV_VERSION.tar.gz;
-        cd libuv-v$LIBUV_VERSION ;
-        ./autogen.sh;
-        ./configure --prefix=$LIBUV_PREFIX --with-pic=yes --enable-shared=yes --enable-static=no;
-        make -j4 install;
-        cd -;
-        rm -rf libuv-v$LIBUV_VERSION libuv-v$LIBUV_VERSION ;
-    fi
-  - if [ ! -e "$CMAKE_PREFIX/bin/cmake" ]; then
-        mkdir -p "$CMAKE_PREFIX";
-        wget -c "https://github.com/Kitware/CMake/archive/v$CMAKE_VERSION.tar.gz" -O CMake-$CMAKE_VERSION.tar.gz ;
-        tar -xvf CMake-$CMAKE_VERSION.tar.gz;
-        cd CMake-$CMAKE_VERSION ;
-        ./bootstrap --prefix=$CMAKE_PREFIX;
-        make -j4 install;
-        cd -;
-        rm -rf CMake-$CMAKE_VERSION CMake-$CMAKE_VERSION.tar.gz;
+        if [ "$TRAVIS_OS_NAME" == "linux" ] ; then
+          mkdir -p "$LIBUV_PREFIX";
+          wget -c "http://dist.libuv.org/dist/v$LIBUV_VERSION/libuv-v$LIBUV_VERSION.tar.gz" -O libuv-v$LIBUV_VERSION.tar.gz;
+          tar -xvf libuv-v$LIBUV_VERSION.tar.gz;
+          cd libuv-v$LIBUV_VERSION ;
+          ./autogen.sh;
+          ./configure --prefix=$LIBUV_PREFIX --with-pic=yes --enable-shared=yes --enable-static=no;
+          make -j4 install;
+          cd -;
+          rm -rf libuv-v$LIBUV_VERSION libuv-v$LIBUV_VERSION ;
+        fi
     fi
   - cd "$REPO_DIR";
 
 script:
   - REPO_DIR=$PWD;
   - mkdir -p $REPO_DIR/build && cd $REPO_DIR/build ;
-  - $CMAKE_PREFIX/bin/cmake .. -DCMAKE_C_COMPILER=$USE_CC -DCMAKE_CXX_COMPILER=$USE_CXX -DPROJECT_ENABLE_UNITTEST=ON -DPROJECT_ENABLE_SAMPLE=ON -DLIBUV_ROOT=$LIBUV_PREFIX -DMSGPACK_ROOT=$MSGPACK_PREFIX ;
-  - make -j4
+  - USE_MSGPACK_ROOT=$MSGPACK_PREFIX ;
+  - if [ "$TRAVIS_OS_NAME" == "linux" ] ; then
+      cmake .. -DCMAKE_C_COMPILER=$USE_CC -DCMAKE_CXX_COMPILER=$USE_CXX -DPROJECT_ENABLE_UNITTEST=ON -DPROJECT_ENABLE_SAMPLE=ON -DPROJECT_ENABLE_TOOLS=ON -DLIBUV_ROOT=$LIBUV_PREFIX -DMSGPACK_ROOT=$USE_MSGPACK_ROOT ;
+    else
+      cmake .. -DCMAKE_C_COMPILER=$USE_CC -DCMAKE_CXX_COMPILER=$USE_CXX -DPROJECT_ENABLE_UNITTEST=ON -DPROJECT_ENABLE_SAMPLE=ON -DPROJECT_ENABLE_TOOLS=ON -DMSGPACK_ROOT=$USE_MSGPACK_ROOT ;
+    fi
+  # - cmake .. -DCMAKE_C_COMPILER=$USE_CC -DCMAKE_CXX_COMPILER=$USE_CXX -DPROJECT_ENABLE_UNITTEST=ON -DPROJECT_ENABLE_SAMPLE=ON -DPROJECT_ENABLE_TOOLS=ON -DLIBUV_ROOT=$LIBUV_PREFIX -DMSGPACK_ROOT=$USE_MSGPACK_ROOT ;
+  - make -j4 ;
 
 after_success:
   - test/atbus_unit_test
@@ -104,7 +134,15 @@ branches:
     - master
 
 notifications:
-  email: false
-  irc:
-    template:
-      - "%{repository}/%{branch} (%{commit} - %{author}): %{build_url}: %{message}"
+  email:
+    recipients:
+      - admin@owent.net
+      - owt5008137@live.com
+    on_success: change
+    on_failure: change
+  webhooks:
+    urls:
+      - https://webhooks.gitter.im/e/3c7b3960fa5b787ad061
+    on_success: change  # options: [always|never|change] default: always
+    on_failure: change  # options: [always|never|change] default: always
+    on_start: never     # options: [always|never|change] default: always

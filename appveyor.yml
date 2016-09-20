@@ -12,27 +12,27 @@ environment:
         PREBUILT_ROOT: C:/Users/appveyor/prebuilt
         SETUP_ROOT: C:/Users/appveyor/setup
         PKG_SRC_ROOT: C:/Users/appveyor/pkg_src
-        LIBUV_VERSION: 1.8.0 # 1.9.0版本编译不过
+        LIBUV_VERSION: 1.9.1
         MSYS2_PREFIX: C:/tools/msys64
         MSYS2_LOG_FILE: C:/Users/appveyor/pkg_src/output.log
     matrix:
         - os: Visual Studio 2015
           platform: x64
-          LIBUV_PKG: http://dist.libuv.org/dist/v1.8.0/libuv-x64-v1.8.0.build8.exe
-          LIBUV_ROOT: C:/Users/appveyor/prebuilt/x64/1.8.0
+          LIBUV_PKG: http://dist.libuv.org/dist/v1.9.1/libuv-x64-v1.9.1.build10.exe
+          LIBUV_ROOT: C:/Users/appveyor/prebuilt/x64/1.9.1
           CMAKE_GEN: Visual Studio 14 2015 Win64
         - os: Visual Studio 2013
           platform: x64
-          LIBUV_PKG: http://dist.libuv.org/dist/v1.8.0/libuv-x64-v1.8.0.build8.exe
-          LIBUV_ROOT: C:/Users/appveyor/prebuilt/x64/1.8.0
+          LIBUV_PKG: http://dist.libuv.org/dist/v1.9.1/libuv-x64-v1.9.1.build10.exe
+          LIBUV_ROOT: C:/Users/appveyor/prebuilt/x64/1.9.1
           CMAKE_GEN: Visual Studio 12 2013 Win64
         - os: MinGW
-          LIBUV_PKG: http://dist.libuv.org/dist/v1.8.0/libuv-v1.8.0.tar.gz
-          LIBUV_ROOT: C:/Users/appveyor/prebuilt/mingw32/1.8.0
+          LIBUV_PKG: http://dist.libuv.org/dist/v1.9.1/libuv-v1.9.1.tar.gz
+          LIBUV_ROOT: C:/Users/appveyor/prebuilt/mingw32/1.9.1
           CMAKE_GEN: MinGW32
         - os: MinGW
-          LIBUV_PKG: http://dist.libuv.org/dist/v1.8.0/libuv-v1.8.0.tar.gz
-          LIBUV_ROOT: C:/Users/appveyor/prebuilt/mingw64/1.8.0
+          LIBUV_PKG: http://dist.libuv.org/dist/v1.9.1/libuv-v1.9.1.tar.gz
+          LIBUV_ROOT: C:/Users/appveyor/prebuilt/mingw64/1.9.1
           CMAKE_GEN: MinGW64
 
 configuration: RelWithDebInfo
@@ -218,17 +218,17 @@ build_script:
 
             if ( "$Env:CMAKE_GEN" -ieq "MinGW32" ) {
 
-                echo "$Env:MSYS2_PREFIX/mingw32_shell -lc cd '$Env:APPVEYOR_BUILD_FOLDER/build'; mkdir build cmake .. -G 'MSYS Makefiles' -DLIBUV_ROOT='$Env:LIBUV_ROOT' -DPROJECT_ENABLE_UNITTEST=ON -DPROJECT_ENABLE_SAMPLE=ON ; make -j4"
+                echo "$Env:MSYS2_PREFIX/mingw32_shell -lc cd '$Env:APPVEYOR_BUILD_FOLDER/build'; mkdir build cmake .. -G 'MSYS Makefiles' -DLIBUV_ROOT='$Env:LIBUV_ROOT' -DPROJECT_ENABLE_UNITTEST=ON -DPROJECT_ENABLE_SAMPLE=ON -DPROJECT_ENABLE_TOOLS=ON ; make -j4"
 
-                & "$Env:MSYS2_PREFIX/mingw32_shell" -lc "cd '$Env:APPVEYOR_BUILD_FOLDER/build'; cmake .. -G 'MSYS Makefiles' -DLIBUV_ROOT='$Env:LIBUV_ROOT' -DPROJECT_ENABLE_UNITTEST=ON -DPROJECT_ENABLE_SAMPLE=ON > '$Env:MSYS2_LOG_FILE' 2>&1; make -j4 >> '$Env:MSYS2_LOG_FILE' 2>&1" | Out-Host
+                & "$Env:MSYS2_PREFIX/mingw32_shell" -lc "cd '$Env:APPVEYOR_BUILD_FOLDER/build'; cmake .. -G 'MSYS Makefiles' -DLIBUV_ROOT='$Env:LIBUV_ROOT' -DPROJECT_ENABLE_UNITTEST=ON -DPROJECT_ENABLE_SAMPLE=ON -DPROJECT_ENABLE_TOOLS=ON > '$Env:MSYS2_LOG_FILE' 2>&1; make -j4 >> '$Env:MSYS2_LOG_FILE' 2>&1" | Out-Host
 
                 Get-Content "$Env:MSYS2_LOG_FILE"
 
             } else {
 
-                echo "$Env:MSYS2_PREFIX/mingw64_shell -lc cd '$Env:APPVEYOR_BUILD_FOLDER/build'; cmake .. -G 'MSYS Makefiles' -DLIBUV_ROOT='$Env:LIBUV_ROOT' -DPROJECT_ENABLE_UNITTEST=ON -DPROJECT_ENABLE_SAMPLE=ON ; make -j4"
+                echo "$Env:MSYS2_PREFIX/mingw64_shell -lc cd '$Env:APPVEYOR_BUILD_FOLDER/build'; cmake .. -G 'MSYS Makefiles' -DLIBUV_ROOT='$Env:LIBUV_ROOT' -DPROJECT_ENABLE_UNITTEST=ON -DPROJECT_ENABLE_SAMPLE=ON -DPROJECT_ENABLE_TOOLS=ON ; make -j4"
 
-                & "$Env:MSYS2_PREFIX/mingw64_shell" -lc "cd '$Env:APPVEYOR_BUILD_FOLDER/build'; cmake ..  -G 'MSYS Makefiles' -DLIBUV_ROOT='$Env:LIBUV_ROOT' -DPROJECT_ENABLE_UNITTEST=ON -DPROJECT_ENABLE_SAMPLE=ON  > '$Env:MSYS2_LOG_FILE' 2>&1; make -j4 >> '$Env:MSYS2_LOG_FILE' 2>&1" | Out-Host
+                & "$Env:MSYS2_PREFIX/mingw64_shell" -lc "cd '$Env:APPVEYOR_BUILD_FOLDER/build'; cmake ..  -G 'MSYS Makefiles' -DLIBUV_ROOT='$Env:LIBUV_ROOT' -DPROJECT_ENABLE_UNITTEST=ON -DPROJECT_ENABLE_SAMPLE=ON -DPROJECT_ENABLE_TOOLS=ON  > '$Env:MSYS2_LOG_FILE' 2>&1; make -j4 >> '$Env:MSYS2_LOG_FILE' 2>&1" | Out-Host
 
                 Get-Content "$Env:MSYS2_LOG_FILE"
 
@@ -236,9 +236,9 @@ build_script:
 
         } else {
 
-            echo "cmake ..  -G '$Env:CMAKE_GEN' -DLIBUV_ROOT='$Env:LIBUV_ROOT' -DPROJECT_ENABLE_UNITTEST=ON -DPROJECT_ENABLE_SAMPLE=ON "
+            echo "cmake ..  -G '$Env:CMAKE_GEN' -DLIBUV_ROOT='$Env:LIBUV_ROOT' -DPROJECT_ENABLE_UNITTEST=ON -DPROJECT_ENABLE_SAMPLE=ON -DPROJECT_ENABLE_TOOLS=ON"
 
-            & cmake ..  -G "$Env:CMAKE_GEN" -DLIBUV_ROOT="$Env:LIBUV_ROOT" -DPROJECT_ENABLE_UNITTEST=ON -DPROJECT_ENABLE_SAMPLE=ON
+            & cmake ..  -G "$Env:CMAKE_GEN" -DLIBUV_ROOT="$Env:LIBUV_ROOT" -DPROJECT_ENABLE_UNITTEST=ON -DPROJECT_ENABLE_SAMPLE=ON -DPROJECT_ENABLE_TOOLS=ON
 
             echo "'C:\Program Files (x86)\MSBuild\14.0\bin\msbuild.exe' 'libatbus.sln' /verbosity:minimal /p:Configuration=$Env:CONFIGURATION /p:Platform=$Env:PLATFORM"
 
@@ -296,3 +296,16 @@ branches:
     - master
 
 # no need artifacts
+notifications:
+    - provider: Email
+      to:
+      - admin@owent.net
+      - owt5008137@live.com
+      on_build_success: false
+      on_build_failure: false
+      on_build_status_changed: true
+    - provider: Webhook
+      url: https://webhooks.gitter.im/e/38667a3c50b8e322422a
+      on_build_success: false
+      on_build_failure: false
+      on_build_status_changed: true

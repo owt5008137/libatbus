@@ -6,11 +6,12 @@ libatbus
 > Build & Run Unit Test in |  Linux+OSX(clang+gcc) | Windows+MinGW(vc+gcc) |
 > -------------------------|--------|---------|
 > Status |  [![Build Status](https://travis-ci.org/atframework/libatbus.svg?branch=master)](https://travis-ci.org/atframework/libatbus) | [![Build status](https://ci.appveyor.com/api/projects/status/v2ufe4xuwbc6gjlf/branch/master?svg=true)](https://ci.appveyor.com/project/owt5008137/libatbus-k408k/branch/master) |
+> Compilers | linux-gcc-4.4 <br /> linux-gcc-4.6 <br /> linux-gcc-4.9 <br /> linux-gcc-6 <br /> linux-clang-3.5 <br /> osx-apple-clang-6.0 <br /> | MSVC 12(Visual Studio 2013) <br /> MSVC 14(Visual Studio 2015) <br />Mingw32-gcc <br \> Mingw64-gcc
 >
 
 Gitter
 ------
-[![Gitter](https://badges.gitter.im/owt5008137/libatbus.svg)](https://gitter.im/owt5008137/libatbus?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge)
+[![Gitter](https://badges.gitter.im/atframework/common.svg)](https://gitter.im/atframework/common?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge)
 
 依赖
 ------
@@ -20,9 +21,10 @@ Gitter
 > + Clang: 3.0 及以上 （建议 clang 3.4及以上）
 > + VC: 10 及以上 （建议VC 12及以上）
 
-+ [cmake](https://cmake.org/download/) 2.8.9 以上(建议 3.4 以上)
++ [cmake](https://cmake.org/download/) 3.1.0 以上(建议 3.4 以上)
 + [msgpack](https://github.com/msgpack/msgpack-c)（用于协议打解包,仅使用头文件）
 + [libuv](http://libuv.org/)（用于网络通道）
++ [atframe_utils](https://github.com/atframework/atframe_utils)（基础公共代码）
 
 
 Why not c?
@@ -45,7 +47,7 @@ Why not c?
 
 1. **[扩展性]** 根据很多业务的需要，预留足够长的ID段（64位），用以给不同的ID段做不同类型的业务区分。
 > 现有很多框架都是32位（比如腾讯的tbus和云风的[skynet](https://github.com/cloudwu/skynet)），在服务类型比较多的时候必须小心设计服务ID,以免冲突。
-> 
+>
 > 当然也有考虑到以后可能会扩展为带Hash的字符串，所以在编译选项上做了预留。但是目前还是uint64_t
 
 2. **[高性能]** 同物理机之间可以直接使用共享内存通信，大幅提高消息分发的性能。跨物理机之间会使用tcp通信。并且这个通信方式的选择是完全自动并透明的（尽可能选择更快的方式发送消息），业务层完全不需要关心。
@@ -55,14 +57,14 @@ Why not c?
 
 5. **[低消耗]** 采用无锁队列，提高CPU性能。（共享）内存通道支持多端写入，一端读取，减少内存浪费。
 > 如果N个节点两两互联，每个节点可以只拥有一个（共享）内存通道。即总共只有N个通道，内存消耗为N*每个通道内存占用
-> 
+>
 > 一些其他的系统（比如tbus和我们目前的服务器框架）如果N个节点两两互联，每两个节点之间都要创建（共享）内存通道。即总共只有N*N个通道，内存消耗为N*N*每个通道内存占用。非常浪费
 
 6. **[简化设计]** 根据一些实际的项目情况，把父子节点间的关系限定为Bus ID的后N位有包含关系，类似路由器的路由表的策略。
 > 比如 0x12345678 可以控制的子节点有16位（0x12345678/16），那么0x12340000-0x1234FFFF都可以注册为它的子节点。
-> 
+>
 > 如同IP协议中 192.168.1.1/24 路由表能管理 192.168.1.0-192.168.1.255 一样。当然这里的24指前24位，而前面提到的16指后16位。
-> 
+>
 > 这么简化以后很多节点关系维护和通信都能简单很多并且能提高性能。
 
 环境准备和构建流程
@@ -75,11 +77,16 @@ Why not c?
 
 更加详细的请参考单元测试和[tools](tools)目录内的代码
 
+
+Benchmark
+------
+压力测试和对比见[doc/Benchmark.md](doc/Benchmark.md)
+
 支持工具
 ------
 Linux下 GCC编译安装脚本(支持离线编译安装):
 
-1. [GCC 5.X.X](https://github.com/owent-utils/bash-shell/tree/master/GCC%20Installer/gcc-5)
+1. [GCC](https://github.com/owent-utils/bash-shell/tree/master/GCC%20Installer)
 2. [LLVM & Clang](https://github.com/owent-utils/bash-shell/tree/master/LLVM%26Clang%20Installer)
 
 LICENSE

@@ -1,10 +1,11 @@
-﻿#include <cstdio>
-#include <assert.h>
+﻿#include <assert.h>
+#include <cstddef>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
 #include <ctime>
 #include <stdint.h>
-#include <cstddef>
-#include <cstring>
-#include <cstdlib>
+
 
 #include "detail/buffer.h"
 
@@ -15,7 +16,7 @@
 #include "detail/libatbus_protocol.h"
 
 namespace atbus {
-    endpoint::ptr_t endpoint::create(node* owner, bus_id_t id, uint32_t children_mask, int32_t pid, const std::string& hn) {
+    endpoint::ptr_t endpoint::create(node *owner, bus_id_t id, uint32_t children_mask, int32_t pid, const std::string &hn) {
         if (NULL == owner) {
             return endpoint::ptr_t();
         }
@@ -35,9 +36,7 @@ namespace atbus {
         return ret;
     }
 
-    endpoint::endpoint():id_(0), children_mask_(0), pid_(0), owner_(NULL) {
-        flags_.reset();
-    }
+    endpoint::endpoint() : id_(0), children_mask_(0), pid_(0), owner_(NULL) { flags_.reset(); }
 
     endpoint::~endpoint() {
         flags_.set(flag_t::DESTRUCTING, true);
@@ -56,7 +55,7 @@ namespace atbus {
         ptr_t tmp_holder = watcher_.lock();
 
         // 释放连接
-        if(ctrl_conn_) {
+        if (ctrl_conn_) {
             ctrl_conn_->binding_ = NULL;
             ctrl_conn_.reset();
         }
@@ -78,12 +77,22 @@ namespace atbus {
     }
 
     bool endpoint::is_child_node(bus_id_t id) const {
+        // id_ == 0 means a temporary node, and has no child
+        if (0 == id_) {
+            return false;
+        }
+
         // 目前id是整数，直接位运算即可
         bus_id_t mask = ~((1 << children_mask_) - 1);
         return (id & mask) == (id_ & mask);
     }
 
     bool endpoint::is_brother_node(bus_id_t id, uint32_t father_mask) const {
+        // id_ == 0 means a temporary node, and all other node is a brother
+        if (0 == id_) {
+            return true;
+        }
+
         // 兄弟节点的子节点也视为兄弟节点
         // 目前id是整数，直接位运算即可
         bus_id_t c_mask = ~((1 << children_mask_) - 1);
@@ -107,7 +116,7 @@ namespace atbus {
         return id | maskv;
     }
 
-    bool endpoint::add_connection(connection* conn, bool force_data) {
+    bool endpoint::add_connection(connection *conn, bool force_data) {
         if (!conn) {
             return false;
         }
@@ -140,11 +149,11 @@ namespace atbus {
     }
 
     bool endpoint::is_available() const {
-        if(!ctrl_conn_) {
+        if (!ctrl_conn_) {
             return false;
         }
 
-        for (std::list<connection::ptr_t>::const_iterator iter = data_conn_.begin(); iter != data_conn_.end(); ++ iter) {
+        for (std::list<connection::ptr_t>::const_iterator iter = data_conn_.begin(); iter != data_conn_.end(); ++iter) {
             if ((*iter) && (*iter)->is_running()) {
                 return true;
             }
@@ -153,7 +162,7 @@ namespace atbus {
         return false;
     }
 
-    bool endpoint::remove_connection(connection* conn) {
+    bool endpoint::remove_connection(connection *conn) {
         if (!conn) {
             return false;
         }
@@ -178,7 +187,7 @@ namespace atbus {
             if ((*iter).get() == conn) {
                 conn->binding_ = NULL;
                 data_conn_.erase(iter);
-                
+
                 // 数据节点全部离线也直接下线
                 // 内存和共享内存通道不会被动下线
                 // 如果任意tcp通道被动下线或者存在内存或共享内存通道则无需下线
@@ -211,15 +220,17 @@ namespace atbus {
         return EN_ATBUS_ERR_SUCCESS;
     }
 
+    uint32_t endpoint::get_flags() const { return static_cast<uint32_t>(flags_.to_ulong()); }
+
     endpoint::ptr_t endpoint::watch() const {
-        if(flags_.test(flag_t::DESTRUCTING) || watcher_.expired()) {
+        if (flags_.test(flag_t::DESTRUCTING) || watcher_.expired()) {
             return endpoint::ptr_t();
         }
 
         return watcher_.lock();
     }
 
-    bool endpoint::sort_connection_cmp_fn(const connection::ptr_t& left, const connection::ptr_t& right) {
+    bool endpoint::sort_connection_cmp_fn(const connection::ptr_t &left, const connection::ptr_t &right) {
         if (left->check_flag(connection::flag_t::ACCESS_SHARE_ADDR) != right->check_flag(connection::flag_t::ACCESS_SHARE_ADDR)) {
             return left->check_flag(connection::flag_t::ACCESS_SHARE_ADDR);
         }
@@ -231,7 +242,7 @@ namespace atbus {
         return false;
     }
 
-    connection* endpoint::get_ctrl_connection(endpoint* ep) const {
+    connection *endpoint::get_ctrl_connection(endpoint *ep) const {
         if (NULL == ep) {
             return NULL;
         }
@@ -247,7 +258,11 @@ namespace atbus {
         return NULL;
     }
 
-    connection* endpoint::get_data_connection(endpoint* ep) const {
+    connection *endpoint::get_data_connection(endpoint *ep) const {
+        return get_data_connection(ep, true);
+    }
+
+    connection *endpoint::get_data_connection(endpoint *ep, bool reuse_ctrl) const {
         if (NULL == ep) {
             return NULL;
         }
@@ -264,7 +279,7 @@ namespace atbus {
             }
         }
 
-        // 按性能邮件及排序mem>shm>fd
+        // 按性能优先级排序mem>shm>fd
         if (false == ep->flags_.test(flag_t::CONNECTION_SORTED)) {
             ep->data_conn_.sort(sort_connection_cmp_fn);
             ep->flags_.set(flag_t::CONNECTION_SORTED, true);
@@ -288,39 +303,151 @@ namespace atbus {
             }
         }
 
-        return get_ctrl_connection(ep);
+        if (reuse_ctrl) {
+            return get_ctrl_connection(ep);
+        } else {
+            return NULL;
+        }
     }
 
-    endpoint::stat_t::stat_t(): fault_count(0), unfinished_ping(0), ping_delay(0), last_pong_time(0){}
+    endpoint::stat_t::stat_t() : fault_count(0), unfinished_ping(0), ping_delay(0), last_pong_time(0) {}
 
     /** 增加错误计数 **/
-    size_t endpoint::add_stat_fault() {
-        return ++stat_.fault_count;
-    }
+    size_t endpoint::add_stat_fault() { return ++stat_.fault_count; }
 
     /** 清空错误计数 **/
-    void endpoint::clear_stat_fault() {
-        stat_.fault_count = 0;
-    }
+    void endpoint::clear_stat_fault() { stat_.fault_count = 0; }
 
-    void endpoint::set_stat_ping(uint32_t p) {
-        stat_.unfinished_ping = p;
-    }
+    void endpoint::set_stat_ping(uint32_t p) { stat_.unfinished_ping = p; }
 
-    uint32_t endpoint::get_stat_ping() const {
-        return stat_.unfinished_ping;
-    }
+    uint32_t endpoint::get_stat_ping() const { return stat_.unfinished_ping; }
 
     void endpoint::set_stat_ping_delay(time_t pd, time_t pong_tm) {
         stat_.ping_delay = pd;
         stat_.last_pong_time = pong_tm;
     }
 
-    time_t endpoint::get_stat_ping_delay() const {
-        return stat_.ping_delay;
+    time_t endpoint::get_stat_ping_delay() const { return stat_.ping_delay; }
+
+    time_t endpoint::get_stat_last_pong() const { return stat_.last_pong_time; }
+
+    size_t endpoint::get_stat_push_start_times() const {
+        size_t ret = 0;
+        for (std::list<connection::ptr_t>::const_iterator iter = data_conn_.begin(); iter != data_conn_.end(); ++iter) {
+            if (*iter) {
+                ret += (*iter)->get_statistic().push_start_times;
+            }
+        }
+
+        if (ctrl_conn_) {
+            ret += ctrl_conn_->get_statistic().push_start_times;
+        }
+
+        return ret;
     }
 
-    time_t endpoint::get_stat_last_pong() const {
-        return stat_.last_pong_time;
+    size_t endpoint::get_stat_push_start_size() const {
+        size_t ret = 0;
+        for (std::list<connection::ptr_t>::const_iterator iter = data_conn_.begin(); iter != data_conn_.end(); ++iter) {
+            if (*iter) {
+                ret += (*iter)->get_statistic().push_start_size;
+            }
+        }
+
+        if (ctrl_conn_) {
+            ret += ctrl_conn_->get_statistic().push_start_size;
+        }
+
+        return ret;
+    }
+
+    size_t endpoint::get_stat_push_success_times() const {
+        size_t ret = 0;
+        for (std::list<connection::ptr_t>::const_iterator iter = data_conn_.begin(); iter != data_conn_.end(); ++iter) {
+            if (*iter) {
+                ret += (*iter)->get_statistic().push_success_times;
+            }
+        }
+
+        if (ctrl_conn_) {
+            ret += ctrl_conn_->get_statistic().push_success_times;
+        }
+
+        return ret;
+    }
+
+    size_t endpoint::get_stat_push_success_size() const {
+        size_t ret = 0;
+        for (std::list<connection::ptr_t>::const_iterator iter = data_conn_.begin(); iter != data_conn_.end(); ++iter) {
+            if (*iter) {
+                ret += (*iter)->get_statistic().push_success_size;
+            }
+        }
+
+        if (ctrl_conn_) {
+            ret += ctrl_conn_->get_statistic().push_success_size;
+        }
+
+        return ret;
+    }
+
+    size_t endpoint::get_stat_push_failed_times() const {
+        size_t ret = 0;
+        for (std::list<connection::ptr_t>::const_iterator iter = data_conn_.begin(); iter != data_conn_.end(); ++iter) {
+            if (*iter) {
+                ret += (*iter)->get_statistic().push_failed_times;
+            }
+        }
+
+        if (ctrl_conn_) {
+            ret += ctrl_conn_->get_statistic().push_failed_times;
+        }
+
+        return ret;
+    }
+
+    size_t endpoint::get_stat_push_failed_size() const {
+        size_t ret = 0;
+        for (std::list<connection::ptr_t>::const_iterator iter = data_conn_.begin(); iter != data_conn_.end(); ++iter) {
+            if (*iter) {
+                ret += (*iter)->get_statistic().push_failed_size;
+            }
+        }
+
+        if (ctrl_conn_) {
+            ret += ctrl_conn_->get_statistic().push_failed_size;
+        }
+
+        return ret;
+    }
+
+    size_t endpoint::get_stat_pull_times() const {
+        size_t ret = 0;
+        for (std::list<connection::ptr_t>::const_iterator iter = data_conn_.begin(); iter != data_conn_.end(); ++iter) {
+            if (*iter) {
+                ret += (*iter)->get_statistic().pull_times;
+            }
+        }
+
+        if (ctrl_conn_) {
+            ret += ctrl_conn_->get_statistic().pull_times;
+        }
+
+        return ret;
+    }
+
+    size_t endpoint::get_stat_pull_size() const {
+        size_t ret = 0;
+        for (std::list<connection::ptr_t>::const_iterator iter = data_conn_.begin(); iter != data_conn_.end(); ++iter) {
+            if (*iter) {
+                ret += (*iter)->get_statistic().pull_size;
+            }
+        }
+
+        if (ctrl_conn_) {
+            ret += ctrl_conn_->get_statistic().pull_size;
+        }
+
+        return ret;
     }
 }

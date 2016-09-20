@@ -9,7 +9,7 @@
 > + Clang: 3.0 及以上 （建议 clang 3.4及以上）
 > + VC: 10 及以上 （建议VC 12及以上）
 
-+ [cmake](https://cmake.org/download/) 2.8.9 以上(建议 3.4 以上)
++ [cmake](https://cmake.org/download/) 3.1.0 以上(建议 3.4 以上)
 + [msgpack](https://github.com/msgpack/msgpack-c)
 > 用于协议打解包,仅使用头文件
 
@@ -18,6 +18,7 @@
 > 
 > 手动编译libuv则需要额外的软件集，基本有: gcc/clang/msvc, autoconf, automake, make, pthread, m4
 
++ [atframe_utils](https://github.com/atframework/atframe_utils)（基础公共代码，检测到不存在会自动下载）
 + (可选)[python](http://python.org/) （周边工具集）
 + (可选)tar, curl, wget: 如果使用内置的脚本自动构建依赖的库，则这些是必要的工具
 
@@ -48,8 +49,8 @@
 > 注意一定是要MingGW的shell（libuv不支持msys shell），msys2默认开启的是msys shell
 > 
 > 通常情况下可以通过以下方式打开MingGW shell
-> + C:\msys64\mingw32_shell.bat    -- 32位
-> + C:\msys64\mingw64_shell.bat    -- 64位
+> + C:\msys64\msys2_shell.cmd -mingw32    -- 32位
+> + C:\msys64\msys2_shell.cmd -mingw64    -- 64位
 > 
 > 请指定生成 MSYS Makefiles 工程文件(-G "MSYS Makefiles")
 
@@ -104,14 +105,17 @@ ln -sf /usr/local/cmake-3.4.3/bin/cmake /usr/bin/cmake;
 + ATBUS_MACRO_BUSID_TYPE (默认: uint64_t): busid的类型，建议不要设置成大于64位，否则需要修改protocol目录内的busid类型，并且重新生成协议文件
 + ATBUS_MACRO_DATA_NODE_SIZE (默认: 128): atbus的内存通道node大小（必须是2的倍数）
 + ATBUS_MACRO_DATA_ALIGN_TYPE (默认: uint64_t): atbus的内存内存块对齐类型（用于优化memcpy和校验）
-+ ATBUS_MACRO_DATA_SMALL_SIZE (默认: 512): 流通道小数据块大小（用于优化减少内存拷贝）
-+ ATBUS_MACRO_HUGETLB_SIZE (默认: 4194304): 大页表分页大小（用于优化共享内存分页）
++ ATBUS_MACRO_DATA_SMALL_SIZE (默认: 3072): 流通道小数据块大小（用于优化减少内存拷贝）
++ ATBUS_MACRO_HUGETLB_SIZE (默认: 4194304): 大页表分页大小（用于优化共享内存分页,此功能暂时关闭，所以并不生效）
 + ATBUS_MACRO_MSG_LIMIT (默认: 65536): 默认消息体大小限制
 + ATBUS_MACRO_CONNECTION_CONFIRM_TIMEOUT (默认: 30): 默认连接确认时限
 + ATBUS_MACRO_CONNECTION_BACKLOG (默认: 128): 默认握手队列的最大连接数
 + GTEST_ROOT: 使用GTest单元测试框架
 + BOOST_ROOT: 设置Boost库根目录
 + PROJECT_TEST_ENABLE_BOOST_UNIT_TEST: 使用Boost.Test单元测试框架(如果GTEST_ROOT和此项都不设置，则使用内置单元测试框架)
++ PROJECT_ENABLE_SAMPLE (默认: NO): 是否编译Sample代码
++ PROJECT_ENABLE_UNITTEST (默认: NO): 是否编译单元测试代码
++ PROJECT_ENABLE_TOOLS (默认: NO): 是否编译工具集（主要是压力测试工具）
 
 
 ### 示例构建脚本

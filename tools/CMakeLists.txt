@@ -1,9 +1,8 @@
 ﻿
 
-EchoWithColor(COLOR GREEN "-- Configure Tools Projects")
+EchoWithColor(COLOR GREEN "-- Configure Tools ${CMAKE_CURRENT_LIST_DIR}")
 
 # ============ TOOLS - [...] ============
-include_directories(${PROJECT_ROOT_SRC_DIR})
 include_directories(${PROJECT_TOOLS_INC_DIR})
 
 # ================ multi thread ================
@@ -13,7 +12,7 @@ if ( NOT MSVC )
 endif()
 
 
-file(GLOB TOOLS_SRC_LIST RELATIVE "${PROJECT_TOOLS_SRC_DIR}"
+file(GLOB TOOLS_SRC_LIST
     ${PROJECT_TOOLS_SRC_DIR}/*.cpp
     ${PROJECT_TOOLS_SRC_DIR}/*.cc
     ${PROJECT_TOOLS_SRC_DIR}/*.c
@@ -22,21 +21,26 @@ file(GLOB TOOLS_SRC_LIST RELATIVE "${PROJECT_TOOLS_SRC_DIR}"
 
 set(EXECUTABLE_OUTPUT_PATH "${PROJECT_BINARY_DIR}/tools")
 
+if (MINGW)
+    list(APPEND EXTENTION_LINK_LIB stdc++)
+endif()
+
 foreach(TOOLS_SRC_FILE IN LISTS TOOLS_SRC_LIST)
     get_filename_component(TOOLS_SRC_BIN_NAME "${TOOLS_SRC_FILE}" NAME_WE)
-    
+
     add_executable("${TOOLS_SRC_BIN_NAME}" ${TOOLS_SRC_FILE})
-    target_link_libraries("${TOOLS_SRC_BIN_NAME}" 
+    target_link_libraries("${TOOLS_SRC_BIN_NAME}"
 	    ${PROJECT_LIB_LINK}
 		${PROJECT_TOOLS_LIB_LINK}
         ${3RD_PARTY_LIBUV_LINK_NAME}
-        ${3RD_PARTY_C_CPP_UTILS_LINK_NAME}
+        ${3RD_PARTY_ATFRAME_UTILS_LINK_NAME}
+        ${EXTENTION_LINK_LIB}
 	)
-	
+
 	install(TARGETS "${TOOLS_SRC_BIN_NAME}"
         RUNTIME DESTINATION tools
         LIBRARY DESTINATION lib${PLATFORM_SUFFIX}
         ARCHIVE DESTINATION lib${PLATFORM_SUFFIX}
     )
-    
+
 endforeach()

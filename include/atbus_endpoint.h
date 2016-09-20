@@ -20,20 +20,20 @@
 
 #include "design_pattern/noncopyable.h"
 
-#include "detail/libatbus_error.h"
-#include "detail/libatbus_config.h"
 #include "detail/libatbus_channel_export.h"
+#include "detail/libatbus_config.h"
+#include "detail/libatbus_error.h"
 
 #include "atbus_connection.h"
 
 namespace atbus {
     namespace detail {
-        template<typename TKey, typename TVal>
+        template <typename TKey, typename TVal>
         struct auto_select_map {
             typedef ATBUS_ADVANCE_TYPE_MAP(TKey, TVal) type;
         };
 
-        template<typename TVal>
+        template <typename TVal>
         struct auto_select_set {
             typedef ATBUS_ADVANCE_TYPE_SET(TVal) type;
         };
@@ -48,17 +48,17 @@ namespace atbus {
 
         typedef struct {
             enum type {
-                RESETTING,                      /** 正在执行重置（防止递归死循环） **/
+                RESETTING, /** 正在执行重置（防止递归死循环） **/
                 CONNECTION_SORTED,
-                DESTRUCTING,                    /** 正在执行析构 **/
+                DESTRUCTING, /** 正在执行析构 **/
 
                 MUTABLE_FLAGS,
-                GLOBAL_ROUTER = MUTABLE_FLAGS,  /** 全局路由表 **/
+                GLOBAL_ROUTER = MUTABLE_FLAGS, /** 全局路由表 **/
                 MAX
             };
         } flag_t;
 
-        typedef connection* (endpoint::*get_connection_fn_t)(endpoint* ep) const;
+        typedef connection *(endpoint::*get_connection_fn_t)(endpoint *ep) const;
 
     private:
         endpoint();
@@ -67,7 +67,7 @@ namespace atbus {
         /**
          * @brief 创建端点
          */
-        static ptr_t create(node* owner, bus_id_t id, uint32_t children_mask, int32_t pid, const std::string& hn);
+        static ptr_t create(node *owner, bus_id_t id, uint32_t children_mask, int32_t pid, const std::string &hn);
         ~endpoint();
 
         void reset();
@@ -76,7 +76,7 @@ namespace atbus {
         inline uint32_t get_children_mask() const { return children_mask_; }
 
         inline int32_t get_pid() const { return pid_; };
-        inline const std::string& get_hostname() const { return hostname_; };
+        inline const std::string &get_hostname() const { return hostname_; };
 
 
         bool is_child_node(bus_id_t id) const;
@@ -85,9 +85,9 @@ namespace atbus {
         static bus_id_t get_children_min_id(bus_id_t id, uint32_t mask);
         static bus_id_t get_children_max_id(bus_id_t id, uint32_t mask);
 
-        bool add_connection(connection* conn, bool force_data);
+        bool add_connection(connection *conn, bool force_data);
 
-        bool remove_connection(connection* conn);
+        bool remove_connection(connection *conn);
 
         /**
          * @brief 是否处于可用状态
@@ -95,7 +95,7 @@ namespace atbus {
          */
         bool is_available() const;
 
-        /** 
+        /**
          * @brief 获取flag
          * @param f flag的key
          * @return 返回f的值，如果f无效，返回false
@@ -112,19 +112,28 @@ namespace atbus {
         int set_flag(flag_t::type f, bool v);
 
         /**
+         * @brief 获取所有flag
+         * @return 整数表示的flags
+         * @see flat_t
+         */
+        uint32_t get_flags() const;
+
+        /**
          * @breif 获取自身的资源holder
          */
         ptr_t watch() const;
 
-        inline const std::list<std::string>& get_listen() const { return listen_address_; }
-        inline void add_listen(const std::string& addr) { listen_address_.push_back(addr); }
+        inline const std::list<std::string> &get_listen() const { return listen_address_; }
+        inline void add_listen(const std::string &addr) { listen_address_.push_back(addr); }
+
     private:
-        static bool sort_connection_cmp_fn(const connection::ptr_t& left, const connection::ptr_t& right);
+        static bool sort_connection_cmp_fn(const connection::ptr_t &left, const connection::ptr_t &right);
 
     public:
-        connection* get_ctrl_connection(endpoint* ep) const;
+        connection *get_ctrl_connection(endpoint *ep) const;
 
-        connection* get_data_connection(endpoint* ep) const;
+        connection *get_data_connection(endpoint *ep) const;
+        connection *get_data_connection(endpoint *ep, bool reuse_ctrl) const;
 
         /** 增加错误计数 **/
         size_t add_stat_fault();
@@ -142,7 +151,17 @@ namespace atbus {
 
         time_t get_stat_last_pong() const;
 
-        inline const node* get_owner() const { return owner_; }
+        size_t get_stat_push_start_times() const;
+        size_t get_stat_push_start_size() const;
+        size_t get_stat_push_success_times() const;
+        size_t get_stat_push_success_size() const;
+        size_t get_stat_push_failed_times() const;
+        size_t get_stat_push_failed_size() const;
+        size_t get_stat_pull_times() const;
+        size_t get_stat_pull_size() const;
+
+        inline const node *get_owner() const { return owner_; }
+
     private:
         bus_id_t id_;
         uint32_t children_mask_;
@@ -151,7 +170,7 @@ namespace atbus {
         int32_t pid_;
 
         // 这里不用智能指针是为了该值在上层对象（node）析构时仍然可用
-        node* owner_;
+        node *owner_;
         std::weak_ptr<endpoint> watcher_;
 
         std::list<std::string> listen_address_;
@@ -160,12 +179,12 @@ namespace atbus {
 
         // 统计数据
         struct stat_t {
-            size_t fault_count;             // 错误容忍计数
-            uint32_t unfinished_ping;       // 上一次未完成的ping的序号
+            size_t fault_count;       // 错误容忍计数
+            uint32_t unfinished_ping; // 上一次未完成的ping的序号
             time_t ping_delay;
-            time_t last_pong_time;          // 上一次接到PONG包时间
+            time_t last_pong_time; // 上一次接到PONG包时间
             stat_t();
-        } ;
+        };
         stat_t stat_;
     };
 }

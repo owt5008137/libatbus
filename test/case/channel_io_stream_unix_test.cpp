@@ -5,9 +5,7 @@
 #include <cstring>
 #include <ctime>
 #include <map>
-#include <atomic>
 #include <memory>
-#include <thread>
 #include <chrono>
 #include <functional>
 

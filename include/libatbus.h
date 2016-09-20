@@ -10,8 +10,6 @@
 #ifndef LIBATBUS_H_
 #define LIBATBUS_H_
 
-#include "detail/libatbus_error.h"
-
-
+#include "atbus_node.h"
 
 #endif /* LIBATBUS_H_ */

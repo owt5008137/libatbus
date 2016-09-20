@@ -69,10 +69,7 @@ int main () {
         // 等待连接成功
         // 如果是拥有共同父节点的兄弟节点不能这么判定，因为在第一次发消息前是不会建立连接的
         for (int i = 0; i < 512; ++i) {
-            atbus::endpoint* ep1 = node2->get_endpoint(node1->get_id());
-            atbus::endpoint* ep2 = node1->get_endpoint(node2->get_id());
-
-            if (NULL != ep1 && NULL != ep2 && NULL != ep1->get_data_connection(ep2) && NULL != ep2->get_data_connection(ep1)) {
+            if (node2->is_endpoint_available(node1->get_id()) && NULL != node1->is_endpoint_available(node2->get_id())) {
                 break;
             }
 
@@ -118,4 +115,4 @@ int main () {
 }
 ```
 
-编译时请包含msgpack、libuv和libatbus的include目录，链接atbus、c_cpp_utils和libuv
+编译时请包含msgpack、libuv和libatbus的include目录，链接atbus、atframe_utils和libuv

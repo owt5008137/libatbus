@@ -1,8 +1,8 @@
-﻿#include <iostream>
-#include <sstream>
-#include <cstdlib>
+﻿#include <cstdlib>
 #include <cstring>
 #include <iomanip>
+#include <iostream>
+#include <sstream>
 
 #include "common/string_oprs.h"
 
@@ -35,8 +35,8 @@ static void node_nodesync_test_on_debug(const char* file_path, size_t line, cons
     std::streamsize w = std::cout.width();
     CASE_MSG_INFO() << "[Log Debug][" << std::setw(24) << file_path << ":" << std::setw(4) << line << "] node=0x" << 
         std::setfill('0')<< std::hex<< std::setw(8)<< n.get_id() <<
-        ", endpoint=0x" << std::setw(8)<< (NULL == ep ? 0 : ep->get_id()) <<
-        ", connection=" << conn<< std::setfill(' ')<< std::setw(w)<<  std::dec<<
+        ", ep=0x" << std::setw(8)<< (NULL == ep ? 0 : ep->get_id()) <<
+        ", c=" << conn<< std::setfill(' ')<< std::setw(w)<<  std::dec<<
         "\t";
 
     va_list ap;

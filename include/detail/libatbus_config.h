@@ -26,19 +26,18 @@
 #define ATBUS_MACRO_DATA_SMALL_SIZE 512
 #endif
 
-#if defined(__cplusplus) && (__cplusplus >= 201103L || \
-        (defined(_MSC_VER) && (_MSC_VER == 1500 && defined (_HAS_TR1)) || (_MSC_VER > 1500 && defined(_HAS_CPP0X) && _HAS_CPP0X)) || \
-        (defined(__GNUC__) && defined(__GXX_EXPERIMENTAL_CXX0X__)) \
-    )
+#if defined(__cplusplus) &&                                                                                         \
+    (__cplusplus >= 201103L || (defined(_MSC_VER) && (_MSC_VER == 1500 && defined(_HAS_TR1)) || _MSC_VER > 1500) || \
+     (defined(__GNUC__) && defined(__GXX_EXPERIMENTAL_CXX0X__)))
 #include <unordered_map>
 #include <unordered_set>
-#define ATBUS_ADVANCE_TYPE_MAP(...) std::unordered_map< __VA_ARGS__ >
-#define ATBUS_ADVANCE_TYPE_SET(...) std::unordered_set< __VA_ARGS__ >
+#define ATBUS_ADVANCE_TYPE_MAP(...) std::unordered_map<__VA_ARGS__>
+#define ATBUS_ADVANCE_TYPE_SET(...) std::unordered_set<__VA_ARGS__>
 #else
 #include <map>
 #include <set>
-#define ATBUS_ADVANCE_TYPE_MAP(...) std::map< __VA_ARGS__ >
-#define ATBUS_ADVANCE_TYPE_SET(...) std::set< __VA_ARGS__ >
+#define ATBUS_ADVANCE_TYPE_MAP(...) std::map<__VA_ARGS__>
+#define ATBUS_ADVANCE_TYPE_SET(...) std::set<__VA_ARGS__>
 #endif
 
 #if defined(__cplusplus) && __cplusplus >= 201103L

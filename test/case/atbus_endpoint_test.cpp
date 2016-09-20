@@ -4,7 +4,6 @@
 #include <cstring>
 #include <ctime>
 #include <map>
-#include <atomic>
 #include <memory>
 #include <limits>
 #include <numeric>

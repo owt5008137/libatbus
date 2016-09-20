@@ -1,5 +1,5 @@
 ﻿
-EchoWithColor(COLOR GREEN "-- Configure Test Projects")
+EchoWithColor(COLOR GREEN "-- Configure Unit Test ${CMAKE_CURRENT_LIST_DIR}")
 
 enable_testing()
 
@@ -24,7 +24,7 @@ source_group_by_dir(PROJECT_TEST_SRC_LIST)
 set(EXECUTABLE_OUTPUT_PATH "${PROJECT_BINARY_DIR}/test")
 
 if (MINGW)
-    list(APPEND EXTENTION_LINK_LIB stdc++)
+    list(APPEND EXTENTION_LINK_LIB stdc++) 
 endif()
 
 add_executable(atbus_unit_test ${PROJECT_TEST_SRC_LIST})
@@ -32,7 +32,7 @@ target_link_libraries(atbus_unit_test
     ${PROJECT_LIB_LINK}
     ${PROJECT_TEST_LIB_LINK}
     ${3RD_PARTY_LIBUV_LINK_NAME}
-    ${3RD_PARTY_C_CPP_UTILS_LINK_NAME}
+    ${3RD_PARTY_ATFRAME_UTILS_LINK_NAME}
     ${EXTENTION_LINK_LIB}
 )
 
