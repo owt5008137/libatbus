@@ -1,6 +1,8 @@
 libatbus
 ========
 
+[![Join the chat at https://gitter.im/owt5008137/libatbus](https://badges.gitter.im/owt5008137/libatbus.svg)](https://gitter.im/owt5008137/libatbus?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+
 用于搭建高性能、全异步(a)、树形结构(t)的BUS消息系统的跨平台框架库
 
 > Build & Run Unit Test in |  Linux+OSX(clang+gcc) | Windows+MinGW(vc+gcc) |
