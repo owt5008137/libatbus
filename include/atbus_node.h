@@ -13,11 +13,13 @@
 #include <bitset>
 #include <cstddef>
 #include <ctime>
+#include <list>
 #include <map>
 #include <set>
 #include <stdint.h>
+#include <vector>
 
-#ifdef _MSC_VER
+#if defined(_WIN32) || defined(__WIN32__) || defined(WIN32)
 #include <WinSock2.h>
 #endif
 
@@ -57,6 +59,8 @@ namespace atbus {
                 EN_FT_ACTIVED,         /** 已激活 **/
                 EN_FT_PARENT_REG_DONE, /** 已通过父节点注册 **/
                 EN_FT_SHUTDOWN,        /** 已完成关闭前的资源回收 **/
+                EN_FT_RECV_SELF_MSG,   /** 正在接收发给自己的信息 **/
+                EN_FT_IN_CALLBACK,     /** 在回调函数中 **/
                 EN_FT_MAX,             /** flag max **/
             };
         };
@@ -86,7 +90,7 @@ namespace atbus {
         typedef std::map<bus_id_t, endpoint::ptr_t> endpoint_collection_t;
 
         struct evt_msg_t {
-            typedef std::function<int(const node &, const endpoint *, const connection *, const protocol::msg&, const void *, size_t)>
+            typedef std::function<int(const node &, const endpoint *, const connection *, const protocol::msg &, const void *, size_t)>
                 on_recv_msg_fn_t;
             typedef std::function<int(const node &, const endpoint *, const connection *, const protocol::msg *m)> on_send_data_failed_fn_t;
             typedef std::function<int(const node &, const endpoint *, const connection *, int, int)> on_error_fn_t;
@@ -110,6 +114,16 @@ namespace atbus {
             on_custom_cmd_fn_t on_custom_cmd;
             on_add_endpoint_fn_t on_endpoint_added;
             on_remove_endpoint_fn_t on_endpoint_removed;
+        };
+
+        struct flag_guard_t {
+            node *owner;
+            flag_t::type flag;
+            bool holder;
+            flag_guard_t(const node *o, flag_t::type f);
+            ~flag_guard_t();
+
+            inline operator bool() { return holder; }
         };
 
         // ================== 用这个来取代C++继承，减少层次结构 ==================
@@ -349,7 +363,7 @@ namespace atbus {
 
         void on_recv(connection *conn, protocol::msg *m, int status, int errcode);
 
-        void on_recv_data(const endpoint *ep, connection *conn, const protocol::msg& m, const void *buffer, size_t s) const;
+        void on_recv_data(const endpoint *ep, connection *conn, const protocol::msg &m, const void *buffer, size_t s) const;
 
         void on_send_data_failed(const endpoint *, const connection *, const protocol::msg *m);
 
@@ -376,6 +390,9 @@ namespace atbus {
 
         /** do not use this directly **/
         int fatal_shutdown(const char *file_path, size_t line, const endpoint *, const connection *, int status, int errcode);
+
+        /** dispatch all self messages **/
+        int dispatch_all_self_msgs();
 
         inline const detail::buffer_block *get_temp_static_buffer() const { return static_buffer_; }
         inline detail::buffer_block *get_temp_static_buffer() { return static_buffer_; }
@@ -467,6 +484,10 @@ namespace atbus {
         std::unique_ptr<channel::io_stream_channel, io_stream_channel_del> iostream_channel_;
         std::unique_ptr<channel::io_stream_conf> iostream_conf_;
         evt_msg_t event_msg_;
+        typedef std::list<std::vector<unsigned char> > self_data_msgs_t;
+        typedef std::list<std::vector<std::vector<unsigned char> > > self_cmd_msgs_t;
+        self_data_msgs_t self_data_msgs_;
+        self_cmd_msgs_t self_cmd_msgs_;
 
         // ============ 定时器 ============
         typedef struct {

@@ -24,19 +24,28 @@ namespace atbus {
 
             connection_async_data(node *o) : owner_node(o) {
                 assert(owner_node);
-                owner_node->ref_object(reinterpret_cast<void *>(this));
+                if (NULL != owner_node) {
+                    owner_node->ref_object(reinterpret_cast<void *>(this));
+                }
             }
 
             ~connection_async_data() { owner_node->unref_object(reinterpret_cast<void *>(this)); }
 
             connection_async_data(const connection_async_data &other) : owner_node(other.owner_node), conn(other.conn) {
                 assert(owner_node);
-                owner_node->ref_object(reinterpret_cast<void *>(this));
+
+                if (NULL != owner_node) {
+                    owner_node->ref_object(reinterpret_cast<void *>(this));
+                }
             }
 
             connection_async_data &operator=(const connection_async_data &other) {
                 assert(owner_node);
                 assert(other.owner_node);
+
+                if (NULL == owner_node || NULL == other.owner_node) {
+                    return *this;
+                }
 
                 if (owner_node != other.owner_node) {
                     owner_node->unref_object(reinterpret_cast<void *>(this));
@@ -150,6 +159,7 @@ namespace atbus {
             }
 
             if (res < 0) {
+                ATBUS_FUNC_NODE_ERROR(*owner_, get_binding(), this, res, 0);
                 return res;
             }
 
@@ -178,6 +188,7 @@ namespace atbus {
             }
 
             if (res < 0) {
+                ATBUS_FUNC_NODE_ERROR(*owner_, get_binding(), this, res, 0);
                 return res;
             }
 
@@ -198,6 +209,7 @@ namespace atbus {
         } else {
             detail::connection_async_data *async_data = new detail::connection_async_data(owner_);
             if (NULL == async_data) {
+                ATBUS_FUNC_NODE_ERROR(*owner_, get_binding(), this, EN_ATBUS_ERR_MALLOC, 0);
                 return EN_ATBUS_ERR_MALLOC;
             }
             connection::ptr_t self = watcher_.lock();
@@ -206,6 +218,7 @@ namespace atbus {
             state_ = state_t::CONNECTING;
             int res = channel::io_stream_listen(owner_->get_iostream_channel(), address_, iostream_on_listen_cb, async_data, 0);
             if (res < 0) {
+                ATBUS_FUNC_NODE_ERROR(*owner_, get_binding(), this, res, owner_->get_iostream_channel()->error_code);
                 delete async_data;
                 return res;
             }
@@ -238,6 +251,7 @@ namespace atbus {
             }
 
             if (res < 0) {
+                ATBUS_FUNC_NODE_ERROR(*owner_, get_binding(), this, res, 0);
                 return res;
             }
 
@@ -249,7 +263,8 @@ namespace atbus {
             conn_data_.shared.mem.channel = mem_chann;
             conn_data_.shared.mem.buffer = reinterpret_cast<void *>(ad);
             conn_data_.shared.mem.len = conf.recv_buffer_size;
-            flags_.set(flag_t::REG_PROC, true);
+            // 仅在listen时要设置proc,否则同机器的同名通道离线会导致proc中断
+            // flags_.set(flag_t::REG_PROC, true);
             if (NULL == binding_) {
                 state_ = state_t::HANDSHAKING;
                 ATBUS_FUNC_NODE_DEBUG(*owner_, binding_, this, NULL, "channel handshaking(connect)");
@@ -269,6 +284,7 @@ namespace atbus {
             }
 
             if (res < 0) {
+                ATBUS_FUNC_NODE_ERROR(*owner_, get_binding(), this, res, 0);
                 return res;
             }
 
@@ -281,7 +297,8 @@ namespace atbus {
             conn_data_.shared.shm.shm_key = shm_key;
             conn_data_.shared.shm.len = conf.recv_buffer_size;
 
-            flags_.set(flag_t::REG_PROC, true);
+            // 仅在listen时要设置proc,否则同机器的同名通道离线会导致proc中断
+            // flags_.set(flag_t::REG_PROC, true);
             if (NULL == binding_) {
                 state_ = state_t::HANDSHAKING;
                 ATBUS_FUNC_NODE_DEBUG(*owner_, binding_, this, NULL, "channel handshaking(connect)");
@@ -301,6 +318,7 @@ namespace atbus {
 
             detail::connection_async_data *async_data = new detail::connection_async_data(owner_);
             if (NULL == async_data) {
+                ATBUS_FUNC_NODE_ERROR(*owner_, get_binding(), this, EN_ATBUS_ERR_MALLOC, 0);
                 return EN_ATBUS_ERR_MALLOC;
             }
             connection::ptr_t self = watcher_.lock();
@@ -309,6 +327,7 @@ namespace atbus {
             state_ = state_t::CONNECTING;
             int res = channel::io_stream_connect(owner_->get_iostream_channel(), address_, iostream_on_connected_cb, async_data, 0);
             if (res < 0) {
+                ATBUS_FUNC_NODE_ERROR(*owner_, get_binding(), this, res, owner_->get_iostream_channel()->error_code);
                 delete async_data;
                 return res;
             }
@@ -466,7 +485,16 @@ namespace atbus {
                                          void *buffer, size_t s) {
 
         assert(channel && channel->data);
+        if (NULL == channel || NULL == channel->data) {
+            return;
+        }
+
         node *_this = reinterpret_cast<node *>(channel->data);
+
+        assert(_this);
+        if (NULL == _this) {
+            return;
+        }
         connection *conn = reinterpret_cast<connection *>(conn_ios->data);
 
         if (status < 0 || NULL == buffer || s <= 0) {
@@ -490,7 +518,10 @@ namespace atbus {
         if (false == unpack(&result, *conn, m, buffer, s)) {
             return;
         }
-        _this->on_recv(conn, &m, status, channel->error_code);
+
+        if (NULL != _this) {
+            _this->on_recv(conn, &m, status, channel->error_code);
+        }
     }
 
     void connection::iostream_on_accepted(channel::io_stream_channel *channel, channel::io_stream_connection *conn_ios, int status,
@@ -543,6 +574,9 @@ namespace atbus {
                                          void *buffer, size_t s) {
         node *n = reinterpret_cast<node *>(channel->data);
         assert(NULL != n);
+        if (NULL == n) {
+            return;
+        }
         connection *conn = reinterpret_cast<connection *>(conn_ios->data);
 
         if (EN_ATBUS_ERR_SUCCESS != status) {

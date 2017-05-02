@@ -32,3 +32,6 @@ build_*
 # project files
 /.idea
 /.vs
+
+# generated file
+/include/detail/libatbus_config.h

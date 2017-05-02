@@ -298,9 +298,15 @@ namespace atbus {
 
 
         static void io_stream_on_recv_alloc_fn(uv_handle_t *handle, size_t suggested_size, uv_buf_t *buf) {
+            assert(handle && handle->data);
+            if (NULL == handle || NULL == handle->data) {
+                return;
+            }
             io_stream_connection *conn_raw_ptr = reinterpret_cast<io_stream_connection *>(handle->data);
-            assert(conn_raw_ptr);
-            assert(conn_raw_ptr->channel);
+            assert(conn_raw_ptr && conn_raw_ptr->channel);
+            if (NULL == conn_raw_ptr->channel) {
+                return;
+            }
 
             io_stream_flag_guard flag_guard(conn_raw_ptr->channel->flags, io_stream_channel::EN_CF_IN_CALLBACK);
 
@@ -568,6 +574,9 @@ namespace atbus {
             io_stream_channel *channel = conn_raw_ptr->channel;
             assert(channel);
             // 被动断开也会触发回调，这里的流程不计数active的req
+            if (NULL == channel) {
+                return;
+            }
 
             io_stream_flag_guard flag_guard(channel->flags, io_stream_channel::EN_CF_IN_CALLBACK);
 
@@ -586,6 +595,11 @@ namespace atbus {
         }
 
         static void io_stream_async_data_on_close(uv_handle_t *handle) {
+            assert(handle && handle->data);
+            if (NULL == handle || NULL == handle->data) {
+                return;
+            }
+
             io_stream_connect_async_data *async_data = reinterpret_cast<io_stream_connect_async_data *>(handle->data);
             assert(async_data);
             assert(reinterpret_cast<uv_handle_t *>(async_data->stream.get()) == handle);
@@ -595,6 +609,11 @@ namespace atbus {
         }
 
         static void io_stream_shared_ptr_on_close(uv_handle_t *handle) {
+            assert(handle && handle->data);
+            if (NULL == handle || NULL == handle->data) {
+                return;
+            }
+
             std::shared_ptr<adapter::stream_t> *ptr = reinterpret_cast<std::shared_ptr<adapter::stream_t> *>(handle->data);
             assert(ptr);
             assert(reinterpret_cast<uv_handle_t *>(ptr->get()) == handle);
@@ -610,11 +629,13 @@ namespace atbus {
             assert(conn->channel);
 
             // move to gc pool
-            io_stream_channel::conn_pool_t::iterator iter = conn->channel->conn_pool.find(conn->fd);
-            assert(iter != conn->channel->conn_pool.end());
+            if (conn && conn->channel) {
+                io_stream_channel::conn_pool_t::iterator iter = conn->channel->conn_pool.find(conn->fd);
+                assert(iter != conn->channel->conn_pool.end());
 
-            conn->channel->conn_gc_pool[reinterpret_cast<uintptr_t>(conn)] = iter->second;
-            conn->channel->conn_pool.erase(iter);
+                conn->channel->conn_gc_pool[reinterpret_cast<uintptr_t>(conn)] = iter->second;
+                conn->channel->conn_pool.erase(iter);
+            }
 
             // ATBUS_CHANNEL_REQ_START(conn->channel);
             // 被动断开也会触发回调，这里的流程不计数active的req
@@ -890,10 +911,18 @@ namespace atbus {
 
         // listen 接口传入域名时的回调
         static void io_stream_dns_connection_cb(uv_getaddrinfo_t *req, int status, struct addrinfo *res) {
+            assert(req && req->data);
+            if (NULL == req || NULL == req->data) {
+                return;
+            }
+
             io_stream_dns_async_data *async_data = reinterpret_cast<io_stream_dns_async_data *>(req->data);
             assert(async_data);
             assert(async_data->channel);
 
+            if (NULL == async_data->channel) {
+                return;
+            }
             ATBUS_CHANNEL_REQ_END(async_data->channel);
 
             io_stream_flag_guard flag_guard(async_data->channel->flags, io_stream_channel::EN_CF_IN_CALLBACK);
@@ -1673,22 +1702,22 @@ namespace atbus {
                 return;
             }
 
-            out << "summary:" << std::endl << "connection number: " << channel->conn_pool.size() << std::endl << std::endl;
+            out << "Summary:" << std::endl << "\tconnection number: " << channel->conn_pool.size() << std::endl << std::endl;
 
-            out << "configure:" << std::endl
-                << "is_noblock: " << channel->conf.is_noblock << std::endl
-                << "is_nodelay: " << channel->conf.is_nodelay << std::endl
-                << "backlog: " << channel->conf.backlog << std::endl
-                << "keepalive: " << channel->conf.keepalive << std::endl
-                << "recv_buffer_limit_size(Bytes): " << channel->conf.recv_buffer_limit_size << std::endl
-                << "recv_buffer_max_size(Bytes): " << channel->conf.recv_buffer_max_size << std::endl
-                << "recv_buffer_static_max_number: " << channel->conf.recv_buffer_static << std::endl
-                << "send_buffer_limit_size(Bytes): " << channel->conf.send_buffer_limit_size << std::endl
-                << "send_buffer_max_size(Bytes): " << channel->conf.send_buffer_max_size << std::endl
-                << "send_buffer_static_max_number: " << channel->conf.send_buffer_static << std::endl
+            out << "Configure:" << std::endl
+                << "\tis_noblock: " << channel->conf.is_noblock << std::endl
+                << "\tis_nodelay: " << channel->conf.is_nodelay << std::endl
+                << "\tbacklog: " << channel->conf.backlog << std::endl
+                << "\tkeepalive: " << channel->conf.keepalive << std::endl
+                << "\trecv_buffer_limit_size(Bytes): " << channel->conf.recv_buffer_limit_size << std::endl
+                << "\trecv_buffer_max_size(Bytes): " << channel->conf.recv_buffer_max_size << std::endl
+                << "\trecv_buffer_static_max_number: " << channel->conf.recv_buffer_static << std::endl
+                << "\tsend_buffer_limit_size(Bytes): " << channel->conf.send_buffer_limit_size << std::endl
+                << "\tsend_buffer_max_size(Bytes): " << channel->conf.send_buffer_max_size << std::endl
+                << "\tsend_buffer_static_max_number: " << channel->conf.send_buffer_static << std::endl
                 << std::endl;
 
-            out << "all connections:" << std::endl;
+            out << "All connections:" << std::endl;
             for (io_stream_channel::conn_pool_t::iterator iter = channel->conn_pool.begin(); iter != channel->conn_pool.end(); ++iter) {
                 out << "\t" << iter->second->addr.address << ":(status = " << iter->second->status << ")" << std::endl;
 

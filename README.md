@@ -6,7 +6,7 @@ libatbus
 > Build & Run Unit Test in |  Linux+OSX(clang+gcc) | Windows+MinGW(vc+gcc) |
 > -------------------------|--------|---------|
 > Status |  [![Build Status](https://travis-ci.org/atframework/libatbus.svg?branch=master)](https://travis-ci.org/atframework/libatbus) | [![Build status](https://ci.appveyor.com/api/projects/status/v2ufe4xuwbc6gjlf/branch/master?svg=true)](https://ci.appveyor.com/project/owt5008137/libatbus-k408k/branch/master) |
-> Compilers | linux-gcc-4.4 <br /> linux-gcc-4.6 <br /> linux-gcc-4.9 <br /> linux-gcc-6 <br /> linux-clang-3.5 <br /> osx-apple-clang-6.0 <br /> | MSVC 12(Visual Studio 2013) <br /> MSVC 14(Visual Studio 2015) <br />Mingw32-gcc <br \> Mingw64-gcc
+> Compilers | linux-gcc-4.4 <br /> linux-gcc-4.6 <br /> linux-gcc-4.9 <br /> linux-gcc-6 <br /> linux-clang-3.5 <br /> osx-apple-clang-6.0 <br /> | MSVC 12(Visual Studio 2013) <br /> MSVC 14(Visual Studio 2015) <br /> MSVC 15(Visual Studio 2017) <br /> Mingw32-gcc<br /> Mingw64-gcc
 >
 
 Gitter
@@ -21,7 +21,7 @@ Gitter
 > + Clang: 3.0 及以上 （建议 clang 3.4及以上）
 > + VC: 10 及以上 （建议VC 12及以上）
 
-+ [cmake](https://cmake.org/download/) 3.1.0 以上(建议 3.4 以上)
++ [cmake](https://cmake.org/download/) 3.4.0 以上
 + [msgpack](https://github.com/msgpack/msgpack-c)（用于协议打解包,仅使用头文件）
 + [libuv](http://libuv.org/)（用于网络通道）
 + [atframe_utils](https://github.com/atframework/atframe_utils)（基础公共代码）

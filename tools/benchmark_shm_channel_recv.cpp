@@ -8,13 +8,27 @@
 #include <map>
 #include <memory>
 #include <thread>
+#include <vector>
 
 #include "config/compiler_features.h"
 #include <detail/libatbus_channel_export.h>
 #include <detail/libatbus_error.h>
 
+#include "common/string_oprs.h"
 
 #if defined(UTIL_CONFIG_COMPILER_CXX_LAMBDAS) && UTIL_CONFIG_COMPILER_CXX_LAMBDAS
+
+static inline char *get_pid_cur(int pid) {
+    static std::vector<std::pair<int, char> > res;
+    for (size_t i = 0; i < res.size(); ++i) {
+        if (res[i].first == pid) {
+            return &res[i].second;
+        }
+    }
+
+    res.push_back(std::pair<int, char>(pid, 0));
+    return &res.back().second;
+}
 
 int main(int argc, char *argv[]) {
     if (argc < 2) {
@@ -30,7 +44,12 @@ int main(int argc, char *argv[]) {
     if (argc > 3) buffer_len = (size_t)strtol(argv[3], NULL, 10);
 
     shm_channel *channel = NULL;
-    key_t shm_key = (key_t)strtol(argv[1], NULL, 10);
+    key_t shm_key;
+    if ('0' == *argv[1] && *(argv[1] + 1) && ('x' == *(argv[1] + 1) || 'X' == *(argv[1] + 1))) {
+        shm_key = (key_t)strtol(argv[1] + 2, NULL, 16);
+    } else {
+        shm_key = (key_t)strtol(argv[1], NULL, 10);
+    }
 
     int res = shm_init(shm_key, buffer_len, &channel, NULL);
     if (res < 0) {
@@ -47,14 +66,13 @@ int main(int argc, char *argv[]) {
 
     // 创建读线程
     std::thread *read_threads = new std::thread([&] {
-        size_t *buf_pool = new size_t[max_n];
-        std::map<size_t, int> val_check;
+        char *buf_pool = new char[max_n * sizeof(size_t)];
+        char *buf_check = new char[max_n * sizeof(size_t)];
 
+        bool is_last_tick_faild = false;
         while (true) {
             size_t n = 0; // 最大 4K-8K的包
-
             int res = shm_recv(channel, buf_pool, sizeof(size_t) * max_n, &n);
-            n /= sizeof(size_t);
 
             if (res) {
                 if (EN_ATBUS_ERR_NO_DATA != res) {
@@ -62,41 +80,54 @@ int main(int argc, char *argv[]) {
                     fprintf(stderr, "shm_recv error, ret code: %d. start: %d, end: %d\n", res, (int)last_action.first,
                             (int)last_action.second);
                     ++sum_recv_err;
+
+                    if (!is_last_tick_faild) {
+                        shm_show_channel(channel, std::cout, true, 24);
+                    }
+                    is_last_tick_faild = true;
                 } else {
                     std::this_thread::sleep_for(std::chrono::milliseconds(128));
                 }
             } else {
                 ++sum_recv_times;
-                sum_recv_len += n * sizeof(size_t);
-                for (size_t i = 1; i < n; ++i) {
-                    if (buf_pool[0] != buf_pool[i]) {
-                        ++sum_data_err;
-                        break;
-                    }
-                }
+                sum_recv_len += n;
 
-                std::map<size_t, int>::iterator iter = val_check.find(buf_pool[0]);
-                if (val_check.end() == iter) {
-                    std::cerr << "new data index " << buf_pool[0] << std::endl;
-                    std::cerr << "all data index: ";
-                    for (std::map<size_t, int>::iterator i = val_check.begin(); i != val_check.end(); ++i) {
-                        std::cerr << i->first << ":" << i->second << ", ";
-                    }
-                    std::cerr << std::endl;
+                int pid = *((int *)buf_pool);
+                char *val_check = get_pid_cur(pid);
+
+                if (0 == *val_check) {
+                    *val_check = *(buf_pool + sizeof(int));
                 } else {
-                    --iter->second;
-                    if (iter->second <= 0) val_check.erase(iter);
+                    ++(*val_check);
+                    if (0 == *val_check) {
+                        ++(*val_check);
+                    }
                 }
 
-                iter = val_check.find(buf_pool[0] + 1);
-                if (val_check.end() == iter)
-                    val_check[buf_pool[0] + 1] = 1;
-                else
-                    ++iter->second;
+                memset(buf_check + sizeof(int), (int)*val_check, n - sizeof(int));
+                int cmp_res = memcmp(buf_pool + sizeof(int), buf_check + sizeof(int), n - sizeof(int));
+                if (0 == cmp_res) {
+                    is_last_tick_faild = false;
+                } else {
+                    std::cerr << "pid: " << pid << " expected data is ";
+                    util::string::dumphex(val_check, 1, std::cerr);
+                    std::cerr << ", but real is ";
+                    util::string::dumphex(buf_pool + sizeof(int), 1, std::cerr);
+                    std::cerr << std::endl;
+                    *val_check = *(buf_pool + sizeof(int));
+
+                    ++sum_data_err;
+
+                    if (!is_last_tick_faild) {
+                        shm_show_channel(channel, std::cout, true, 24);
+                    }
+                    is_last_tick_faild = true;
+                }
             }
         }
 
         delete[] buf_pool;
+        delete[] buf_check;
     });
 
 
@@ -128,6 +159,8 @@ int main(int argc, char *argv[]) {
 
     read_threads->join();
     delete read_threads;
+
+    return 0;
 }
 
 #else

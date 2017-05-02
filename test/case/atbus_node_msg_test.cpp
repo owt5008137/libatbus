@@ -248,7 +248,56 @@ CASE_TEST(atbus_node_msg, custom_cmd) {
     unit_test_setup_exit(&ev_loop);
 }
 
-// 发给自己
+// 发给自己的命令
+CASE_TEST(atbus_node_msg, send_cmd_to_self) {
+    atbus::node::conf_t conf;
+    atbus::node::default_conf(&conf);
+    conf.children_mask = 16;
+    uv_loop_t ev_loop;
+    uv_loop_init(&ev_loop);
+
+    conf.ev_loop = &ev_loop;
+
+    {
+        atbus::node::ptr_t node1 = atbus::node::create();
+        node1->on_debug = node_msg_test_on_debug;
+        node1->set_on_error_handle(node_msg_test_on_error);
+
+        node1->init(0x12345678, &conf);
+
+        CASE_EXPECT_EQ(EN_ATBUS_ERR_SUCCESS, node1->listen("ipv4://127.0.0.1:16387"));
+
+        CASE_EXPECT_EQ(EN_ATBUS_ERR_SUCCESS, node1->start());
+
+        time_t proc_t = time(NULL) + 1;
+        node1->poll();
+        node1->proc(proc_t, 0);
+
+        char cmds[][8] = {"self", "command", "yep"};
+        size_t cmds_len[] = {strlen(cmds[0]), strlen(cmds[1]), strlen(cmds[2])};
+        const void* cmds_in[] = {cmds[0], cmds[1], cmds[2]};
+
+        int count = recv_msg_history.count;
+        node1->set_on_custom_cmd_handle(node_msg_test_recv_msg_test_custom_cmd_fn);
+        node1->send_custom_cmd(node1->get_id(), cmds_in, cmds_len, 3);
+
+        CASE_EXPECT_EQ(count + 1, recv_msg_history.count);
+        CASE_EXPECT_EQ(cmds_len[0] + cmds_len[1] + cmds_len[2] + 3, recv_msg_history.data.size());
+        size_t start_index = 0;
+        for (int i = 0; i < 3; ++ i) {
+            std::string l, r;
+            l.assign(cmds[i], cmds_len[i]);
+            r.assign(recv_msg_history.data.c_str() + start_index, cmds_len[i]);
+            CASE_EXPECT_EQ(l, r);
+            start_index += cmds_len[i] + 1;
+        }
+    }
+
+    unit_test_setup_exit(&ev_loop);
+}
+
+
+// 发给自己,直接回调
 CASE_TEST(atbus_node_msg, reset_and_send) {
     atbus::node::conf_t conf;
     atbus::node::default_conf(&conf);
@@ -286,6 +335,89 @@ CASE_TEST(atbus_node_msg, reset_and_send) {
 
     unit_test_setup_exit(&ev_loop);
 }
+
+static int node_msg_test_recv_and_send_msg_on_failed_fn(const atbus::node &n, const atbus::endpoint *ep, const atbus::connection *conn,
+                                                 const atbus::protocol::msg* m) {
+    ++recv_msg_history.count;
+    return 0;
+}
+
+static int node_msg_test_recv_and_send_msg_fn(const atbus::node &n, const atbus::endpoint *ep, const atbus::connection *conn,
+                                                 const atbus::protocol::msg& m, const void *buffer, size_t len) {
+    recv_msg_history.n = &n;
+    recv_msg_history.ep = ep;
+    recv_msg_history.conn = conn;
+    recv_msg_history.status = m.head.ret;
+    ++recv_msg_history.count;
+
+    std::streamsize w = std::cout.width();
+    if (NULL != buffer && len > 0) {
+        recv_msg_history.data.assign(reinterpret_cast<const char *>(buffer), len);
+        CASE_MSG_INFO() << "[Log Debug] node=0x" << std::setfill('0') << std::hex << std::setw(8) << n.get_id() << ", ep=0x" << std::setw(8)
+                        << (NULL == ep ? 0 : ep->get_id()) << ", c=" << conn << std::setfill(' ') << std::setw(w) << std::dec << "\t"
+                        << "recv message: ";
+        std::cout.write(reinterpret_cast<const char *>(buffer), len);
+        std::cout << std::endl;
+    } else {
+        recv_msg_history.data.clear();
+        CASE_MSG_INFO() << "[Log Debug] node=0x" << std::setfill('0') << std::hex << std::setw(8) << n.get_id() << ", ep=0x" << std::setw(8)
+                        << (NULL == ep ? 0 : ep->get_id()) << ", c=" << conn << std::setfill(' ') << std::setw(w) << std::dec << "\t"
+                        << "recv message: [NOTHING]" << std::endl;
+    }
+
+    std::string sended_data;
+    sended_data.assign(reinterpret_cast<const char*>(buffer), len);
+    sended_data += sended_data;
+
+    atbus::node* np = const_cast<atbus::node* >(&n);
+    np->set_on_recv_handle(node_msg_test_recv_msg_test_record_fn);
+    np->set_on_send_data_failed_handle(node_msg_test_recv_and_send_msg_on_failed_fn);
+                     
+    np->send_data(n.get_id(), 0, sended_data.c_str(), sended_data.size(), true);
+    return 0;
+}
+
+// 发给自己,下一帧回调
+CASE_TEST(atbus_node_msg, send_msg_to_self_and_need_rsp) {
+    atbus::node::conf_t conf;
+    atbus::node::default_conf(&conf);
+    conf.children_mask = 16;
+    uv_loop_t ev_loop;
+    uv_loop_init(&ev_loop);
+
+    conf.ev_loop = &ev_loop;
+
+    {
+        atbus::node::ptr_t node1 = atbus::node::create();
+        node1->on_debug = node_msg_test_on_debug;
+        node1->set_on_error_handle(node_msg_test_on_error);
+
+        node1->init(0x12345678, &conf);
+
+        CASE_EXPECT_EQ(EN_ATBUS_ERR_SUCCESS, node1->listen("ipv4://127.0.0.1:16387"));
+
+        CASE_EXPECT_EQ(EN_ATBUS_ERR_SUCCESS, node1->start());
+
+        time_t proc_t = time(NULL) + 1;
+        node1->poll();
+        node1->proc(proc_t, 0);
+
+        std::string send_data;
+        send_data.assign("self\0hello world!\n", sizeof("self\0hello world!\n") - 1);
+
+        int count = recv_msg_history.count;
+        node1->set_on_recv_handle(node_msg_test_recv_and_send_msg_fn);
+        node1->send_data(node1->get_id(), 0, send_data.data(), send_data.size());
+
+        CASE_EXPECT_EQ(count + 3, recv_msg_history.count);
+        send_data += send_data;
+        CASE_EXPECT_EQ(send_data, recv_msg_history.data);
+
+    }
+
+    unit_test_setup_exit(&ev_loop);
+}
+
 
 // 父子节点消息转发测试
 CASE_TEST(atbus_node_msg, parent_and_child) {

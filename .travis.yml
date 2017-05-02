@@ -3,10 +3,10 @@ language: cpp
 env:
   global:
     - LANG="zh_CN.UTF-8"
-    - MSGPACK_PREFIX=$HOME/prebuilt/msgpack-2.0.0 ;
-    - MSGPACK_VERSION=2.0.0 ;
-    - LIBUV_PREFIX=$HOME/prebuilt/libuv-1.9.1 ;
-    - LIBUV_VERSION=1.9.1
+    - MSGPACK_PREFIX=$HOME/prebuilt/msgpack-2.1.1 ;
+    - MSGPACK_VERSION=2.1.1 ;
+    - LIBUV_PREFIX=$HOME/prebuilt/libuv-1.11.0 ;
+    - LIBUV_VERSION=1.11.0
 matrix:
   include:
     - os: osx
@@ -20,7 +20,7 @@ matrix:
     - os: linux
       dist: trusty
       sudo: required
-      env: USE_CC=gcc-4.4 USE_CXX=g++-4.4 MSGPACK_VERSION=1.4.2
+      env: USE_CC=gcc-4.4 USE_CXX=g++-4.4 # MSGPACK_VERSION=1.4.2
     - os: linux
       dist: trusty
       sudo: required
@@ -42,7 +42,8 @@ addons:
   apt:
     sources:
       - ubuntu-toolchain-r-test
-      - ppa:george-edison55/cmake-3.x
+      - sourceline: 'ppa:george-edison55/cmake-3.x'
+        key_url: null
       # - sourceline: 'deb http://apt.llvm.org/trusty/ llvm-toolchain-trusty-3.8 main'
       #   key_url: 'http://apt.llvm.org/llvm-snapshot.gpg.key'
 
