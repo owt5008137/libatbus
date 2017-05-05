@@ -9,7 +9,7 @@
 > + Clang: 3.0 及以上 （建议 clang 3.4及以上）
 > + VC: 10 及以上 （建议VC 12及以上）
 
-+ [cmake](https://cmake.org/download/) 3.1.0 以上(建议 3.4 以上)
++ [cmake](https://cmake.org/download/) 3.3.0 以上(建议 3.4 以上)
 + [msgpack](https://github.com/msgpack/msgpack-c)
 > 用于协议打解包,仅使用头文件
 
@@ -49,8 +49,8 @@
 > 注意一定是要MingGW的shell（libuv不支持msys shell），msys2默认开启的是msys shell
 > 
 > 通常情况下可以通过以下方式打开MingGW shell
-> + C:\msys64\msys2_shell.cmd -mingw32    -- 32位
-> + C:\msys64\msys2_shell.cmd -mingw64    -- 64位
+> + C:\msys64\mingw32.exe    -- 32位
+> + C:\msys64\mingw64.exe -mingw64    -- 64位
 > 
 > 请指定生成 MSYS Makefiles 工程文件(-G "MSYS Makefiles")
 
@@ -75,13 +75,9 @@
 
 比如CentOS:
 ```
-yum install gcc autoconf automake gdb valgrind curl wget tar m4 automake make;
-wget -c "https://github.com/Kitware/CMake/archive/v3.4.3.tar.gz" -O "CMake-3.4.3.tar.gz";
-tar -xvf "CMake-3.4.3.tar.gz";
-cd CMake-3.4.3;
-./bootstrap --prefix=/usr/local/cmake-3.4.3
-make -j4 install;
-ln -sf /usr/local/cmake-3.4.3/bin/cmake /usr/bin/cmake;
+yum install gcc gcc-c++ autoconf automake gdb valgrind curl wget tar m4 automake make;
+wget -c "https://cmake.org/files/v3.8/cmake-3.8.1-Linux-x86_64.sh" -O "cmake-3.8.1-Linux-x86_64.sh";
+bash cmake-3.8.1-Linux-x86_64.sh --skip-license --prefix=/usr ;
 ```
 
 详情可参考 [Travis CI](../.travis.yml) 脚本
@@ -120,7 +116,7 @@ ln -sf /usr/local/cmake-3.4.3/bin/cmake /usr/bin/cmake;
 
 ### 示例构建脚本
 ```
-git clone "https://github.com/owt5008137/libatbus.git"
+git clone --depth=1 "https://github.com/atframework/libatbus.git"
 mkdir libatbus/build;
 cd libatbus/build;
 # cmake .. -G "MSYS Makefiles" -DLIBUV_ROOT=c:/workspace/projs/github/libatbus/3rd_party/libuv/prebuilt/mingw64 -DMSGPACK_ROOT=C:/workspace/lib/protocol/msgpack/msgpack-1.4.0
@@ -142,7 +138,7 @@ make install 仅会安装include目录和编译好的libs
 ### 目录结构说明
 
 + 3rd_party: 外部组件（不一定是依赖项）
-+ doc: 文档目录
++ docs: 文档目录
 + include: 导出lib的包含文件（注意不导出的内部接口后文件会直接在src目录里）
 + project: 工程工具和配置文件集
 + protocol: 协议描述文件目录

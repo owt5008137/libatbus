@@ -7,43 +7,43 @@ env:
     - MSGPACK_VERSION=2.1.1 ;
     - LIBUV_PREFIX=$HOME/prebuilt/libuv-1.11.0 ;
     - LIBUV_VERSION=1.11.0
+    - CMAKE_PREFIX=$HOME/prebuilt/cmake ;
+    - CMAKE_LINUX_URL=https://cmake.org/files/v3.8/cmake-3.8.1-Linux-x86_64.sh ;
 matrix:
   include:
     - os: osx
-      env: USE_CC=clang USE_CXX=clang++
+      env: USE_CC=clang USE_CXX=clang++ CMAKE_BIN=cmake
     - os: osx
-      env: USE_CC=gcc USE_CXX=g++
+      env: USE_CC=gcc USE_CXX=g++ CMAKE_BIN=cmake
     - os: linux
       dist: trusty
       sudo: required
-      env: USE_CC=gcc USE_CXX=g++
+      env: USE_CC=gcc USE_CXX=g++ CMAKE_BIN=$CMAKE_PREFIX/bin/cmake
     - os: linux
       dist: trusty
       sudo: required
-      env: USE_CC=gcc-4.4 USE_CXX=g++-4.4 # MSGPACK_VERSION=1.4.2
+      env: USE_CC=gcc-4.4 USE_CXX=g++-4.4 CMAKE_BIN=$CMAKE_PREFIX/bin/cmake # MSGPACK_VERSION=1.4.2
     - os: linux
       dist: trusty
       sudo: required
-      env: USE_CC=gcc-4.9 USE_CXX=g++-4.9
+      env: USE_CC=gcc-4.9 USE_CXX=g++-4.9 CMAKE_BIN=$CMAKE_PREFIX/bin/cmake
     - os: linux
       dist: trusty
       sudo: required
-      env: USE_CC=gcc-6 USE_CXX=g++-6
+      env: USE_CC=gcc-6 USE_CXX=g++-6 CMAKE_BIN=$CMAKE_PREFIX/bin/cmake
     - os: linux
       dist: trusty
       sudo: required
-      env: USE_CC=clang USE_CXX=clang++
+      env: USE_CC=clang USE_CXX=clang++ CMAKE_BIN=$CMAKE_PREFIX/bin/cmake
     # - os: linux
     #   dist: trusty
     #   sudo: required
-    #   env: USE_CC=clang-3.8 USE_CXX=clang++-3.8
+    #   env: USE_CC=clang-3.8 USE_CXX=clang++-3.8 CMAKE_BIN=$CMAKE_PREFIX/bin/cmake
 
 addons:
   apt:
     sources:
       - ubuntu-toolchain-r-test
-      - sourceline: 'ppa:george-edison55/cmake-3.x'
-        key_url: null
       # - sourceline: 'deb http://apt.llvm.org/trusty/ llvm-toolchain-trusty-3.8 main'
       #   key_url: 'http://apt.llvm.org/llvm-snapshot.gpg.key'
 
@@ -79,10 +79,16 @@ before_install:
 #   - if [ "$TRAVIS_OS_NAME" == "linux" ]; then sudo apt-get update; fi
 
 install:
-    - if [ "$TRAVIS_OS_NAME" == "linux" ] ; then sudo apt-get install -qq -y cmake; fi
+    - if [ "$TRAVIS_OS_NAME" == "linux" ] ; then
+    
+          if [ ! -e "$CMAKE_BIN" ]; then
+            mkdir -p "$CMAKE_PREFIX";
+            curl --insecure -L "$CMAKE_LINUX_URL" -o cmake-linux.sh ;
+            bash cmake-linux.sh --skip-license --prefix=$CMAKE_PREFIX ;
+          fi
+
+      fi
     - if [ "$TRAVIS_OS_NAME" == "osx" ] ; then brew upgrade cmake; brew install --HEAD libuv; fi
-#   - if [ "$TRAVIS_OS_NAME" == "linux" ] && [ "$USE_CC" == "gcc-4.9" ] ; then sudo apt-get install -qq gcc-4.9-multilib g++-4.9-multilib; fi
-#   - if [ "$TRAVIS_OS_NAME" == "linux" ] && [ "$USE_CC" == "clang-3.7" ] ; then sudo apt-get install --allow-unauthenticated -qq clang-3.7; fi
 
 before_script:
   - REPO_DIR=$PWD;
@@ -114,12 +120,12 @@ script:
   - mkdir -p $REPO_DIR/build && cd $REPO_DIR/build ;
   - USE_MSGPACK_ROOT=$MSGPACK_PREFIX ;
   - if [ "$TRAVIS_OS_NAME" == "linux" ] ; then
-      cmake .. -DCMAKE_C_COMPILER=$USE_CC -DCMAKE_CXX_COMPILER=$USE_CXX -DPROJECT_ENABLE_UNITTEST=ON -DPROJECT_ENABLE_SAMPLE=ON -DPROJECT_ENABLE_TOOLS=ON -DLIBUV_ROOT=$LIBUV_PREFIX -DMSGPACK_ROOT=$USE_MSGPACK_ROOT ;
+      $CMAKE_BIN .. -DCMAKE_C_COMPILER=$USE_CC -DCMAKE_CXX_COMPILER=$USE_CXX -DPROJECT_ENABLE_UNITTEST=ON -DPROJECT_ENABLE_SAMPLE=ON -DPROJECT_ENABLE_TOOLS=ON -DLIBUV_ROOT=$LIBUV_PREFIX -DMSGPACK_ROOT=$USE_MSGPACK_ROOT ;
     else
-      cmake .. -DCMAKE_C_COMPILER=$USE_CC -DCMAKE_CXX_COMPILER=$USE_CXX -DPROJECT_ENABLE_UNITTEST=ON -DPROJECT_ENABLE_SAMPLE=ON -DPROJECT_ENABLE_TOOLS=ON -DMSGPACK_ROOT=$USE_MSGPACK_ROOT ;
+      $CMAKE_BIN .. -DCMAKE_C_COMPILER=$USE_CC -DCMAKE_CXX_COMPILER=$USE_CXX -DPROJECT_ENABLE_UNITTEST=ON -DPROJECT_ENABLE_SAMPLE=ON -DPROJECT_ENABLE_TOOLS=ON -DMSGPACK_ROOT=$USE_MSGPACK_ROOT ;
     fi
-  # - cmake .. -DCMAKE_C_COMPILER=$USE_CC -DCMAKE_CXX_COMPILER=$USE_CXX -DPROJECT_ENABLE_UNITTEST=ON -DPROJECT_ENABLE_SAMPLE=ON -DPROJECT_ENABLE_TOOLS=ON -DLIBUV_ROOT=$LIBUV_PREFIX -DMSGPACK_ROOT=$USE_MSGPACK_ROOT ;
-  - make -j4 ;
+  # - $CMAKE_BIN .. -DCMAKE_C_COMPILER=$USE_CC -DCMAKE_CXX_COMPILER=$USE_CXX -DPROJECT_ENABLE_UNITTEST=ON -DPROJECT_ENABLE_SAMPLE=ON -DPROJECT_ENABLE_TOOLS=ON -DLIBUV_ROOT=$LIBUV_PREFIX -DMSGPACK_ROOT=$USE_MSGPACK_ROOT ;
+  - $CMAKE_BIN --build .
 
 after_success:
   - test/atbus_unit_test

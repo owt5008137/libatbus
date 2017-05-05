@@ -69,18 +69,18 @@ Why not c?
 
 环境准备和构建流程
 ------
-使用cmake标准构建方式，默认的编译目标为Debug版本，详见 [使用（编译）流程](doc/Build.md)
+使用cmake标准构建方式，默认的编译目标为Debug版本，详见 [使用（编译）流程](docs/Build.md)
 
 使用示例
 ------
-简要的使用示例见 [使用示例](doc/Usage.md)
+简要的使用示例见 [使用示例](docs/Usage.md)
 
 更加详细的请参考单元测试和[tools](tools)目录内的代码
 
 
 Benchmark
 ------
-压力测试和对比见[doc/Benchmark.md](doc/Benchmark.md)
+压力测试和对比见[docs/Benchmark.md](docs/Benchmark.md)
 
 支持工具
 ------

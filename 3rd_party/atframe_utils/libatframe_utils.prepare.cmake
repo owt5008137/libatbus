@@ -10,7 +10,7 @@ else()
     set (3RD_PARTY_ATFRAME_UTILS_PKG_DIR "${3RD_PARTY_ATFRAME_UTILS_BASE_DIR}/repo")
     if(NOT EXISTS ${3RD_PARTY_ATFRAME_UTILS_PKG_DIR})
         find_package(Git)
-        execute_process(COMMAND ${GIT_EXECUTABLE} clone "https://github.com/atframework/atframe_utils.git" ${3RD_PARTY_ATFRAME_UTILS_PKG_DIR}
+        execute_process(COMMAND ${GIT_EXECUTABLE} clone --depth=1 "https://github.com/atframework/atframe_utils.git" ${3RD_PARTY_ATFRAME_UTILS_PKG_DIR}
             WORKING_DIRECTORY ${3RD_PARTY_ATFRAME_UTILS_BASE_DIR}
         )
     endif()

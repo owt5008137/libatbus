@@ -15,8 +15,6 @@ environment:
         LIBUV_VERSION: 1.11.0
         MSYS2_PREFIX: C:/tools/msys64
         MSYS2_LOG_FILE: C:/Users/appveyor/pkg_src/output.log
-        MSBUILD: msbuild
-        #MSBUILD: C:/Program Files (x86)/MSBuild/14.0/bin/msbuild.exe
     matrix:
         - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2017
           platform: x64
@@ -243,13 +241,13 @@ build_script:
 
         } else {
 
-            echo "cmake ..  -G '$Env:CMAKE_GEN' -DLIBUV_ROOT='$Env:LIBUV_ROOT' -DPROJECT_ENABLE_UNITTEST=ON -DPROJECT_ENABLE_SAMPLE=ON -DPROJECT_ENABLE_TOOLS=ON"
+            echo "cmake ..  -G '$Env:CMAKE_GEN' -DLIBUV_ROOT='$Env:LIBUV_ROOT' -DPROJECT_ENABLE_UNITTEST=ON -DPROJECT_ENABLE_SAMPLE=ON -DPROJECT_ENABLE_TOOLS=ON -DCMAKE_BUILD_TYPE=$Env:CONFIGURATION"
 
-            & cmake ..  -G "$Env:CMAKE_GEN" -DLIBUV_ROOT="$Env:LIBUV_ROOT" -DPROJECT_ENABLE_UNITTEST=ON -DPROJECT_ENABLE_SAMPLE=ON -DPROJECT_ENABLE_TOOLS=ON
+            & cmake ..  -G "$Env:CMAKE_GEN" -DLIBUV_ROOT="$Env:LIBUV_ROOT" -DPROJECT_ENABLE_UNITTEST=ON -DPROJECT_ENABLE_SAMPLE=ON -DPROJECT_ENABLE_TOOLS=ON -DCMAKE_BUILD_TYPE=$Env:CONFIGURATION
 
-            echo "'$Env:MSBUILD' 'libatbus.sln' /verbosity:minimal /p:Configuration=$Env:CONFIGURATION /p:Platform=$Env:PLATFORM"
+            echo "cmake --build . --config $Env:CONFIGURATION"
 
-            & "$Env:MSBUILD" "libatbus.sln" /verbosity:minimal /p:Configuration=$Env:CONFIGURATION /p:Platform=$Env:PLATFORM
+            & cmake --build . --config $Env:CONFIGURATION
         }
 #
 # Run unit test

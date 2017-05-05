@@ -18,7 +18,6 @@
 #include <detail/libatbus_error.h>
 
 
-
 CASE_TEST(channel, mem_siso) {
     using namespace atbus::channel;
     const size_t buffer_len = 512 * 1024 * 1024; // 512MB
@@ -128,7 +127,7 @@ CASE_TEST(channel, mem_siso) {
 
 CASE_TEST(channel, mem_miso) {
     using namespace atbus::channel;
-    const size_t buffer_len = 64 * 1024 * 1024; // 64MB
+    const size_t buffer_len = 8 * 1024 * 1024; // 8MB
     char *buffer = new char[buffer_len];
 
     mem_channel *channel = NULL;
@@ -153,9 +152,10 @@ CASE_TEST(channel, mem_miso) {
     size_t sum_recv_len = 0;
     size_t sum_recv_times = 0;
     size_t sum_recv_err = 0;
+    bool all_write_thread_exit = false;
 
-    // 创建6个写线程
-    const size_t wn = 6;
+    // 创建8个写线程
+    const size_t wn = 8;
     std::thread *write_threads[wn];
     for (size_t i = 0; i < wn; ++i) {
         write_threads[i] = new std::thread([&] {
@@ -205,21 +205,22 @@ CASE_TEST(channel, mem_miso) {
     // 读进程
     std::thread *read_thread = new std::thread([&] {
         size_t buff_recv[1024]; // 最大 4K-8K的包
-        int read_failcount = 10;
 
         size_t head_offset = sizeof(size_t) * 6;
         size_t head_len = sizeof(size_t) * 2;
         size_t data_seq[16] = {0};
         // bool dump_flag = true;
 
-        while (read_failcount >= 0) {
+        while (true) {
             size_t len = 0;
             // CASE_THREAD_SLEEP_MS(500);
             int res = mem_recv(channel, buff_recv, sizeof(buff_recv), &len);
             if (res) {
                 if (EN_ATBUS_ERR_NO_DATA == res) {
                     CASE_THREAD_YIELD();
-                    --read_failcount;
+                    if (all_write_thread_exit) {
+                        break;
+                    }
                 } else {
                     CASE_EXPECT_LE(EN_ATBUS_ERR_NODE_BAD_BLOCK_CSEQ_ID, res);
                     CASE_EXPECT_GE(EN_ATBUS_ERR_BAD_DATA, res);
@@ -239,10 +240,9 @@ CASE_TEST(channel, mem_miso) {
                     CASE_EXPECT_EQ(data_seq[rdh], rdd);
 
                     if (data_seq[rdh] != rdd) {
-                        std::pair<size_t, size_t> last_action = mem_last_action();
-
-                        CASE_MSG_INFO() << "rdh=" << rdh << ", data_seq[rdh]=" << data_seq[rdh] << ", rdd=" << rdd
-                                        << ", start index=" << last_action.first << ", end index=" << last_action.second << std::endl;
+                        mem_show_channel(channel, CASE_MSG_INFO() << "rdh=" << rdh << ", data_seq[rdh]=" << data_seq[rdh] << ", rdd=" << rdd
+                                                                  << std::endl,
+                                         true, 16);
                     }
 
                     data_seq[rdh] = rdd + 1;
@@ -257,8 +257,6 @@ CASE_TEST(channel, mem_miso) {
                         }
                     }
                 }
-
-                read_failcount = 10;
             }
         }
     });
@@ -286,6 +284,7 @@ CASE_TEST(channel, mem_miso) {
         delete write_threads[i];
     }
 
+    all_write_thread_exit = true;
     read_thread->join();
     delete read_thread;
     delete[] buffer;
