@@ -1,4 +1,7 @@
-﻿
+﻿if (CMAKE_VERSION VERSION_GREATER_EQUAL "3.10")
+    include_guard(GLOBAL)
+endif()
+
 # =========== 3rdparty atframe_utils ==================
 if(NOT 3RD_PARTY_ATFRAME_UTILS_BASE_DIR)
     set (3RD_PARTY_ATFRAME_UTILS_BASE_DIR ${CMAKE_CURRENT_LIST_DIR})

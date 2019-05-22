@@ -5,6 +5,8 @@
 #ifndef LIBATBUS_BUFFER_H
 #define LIBATBUS_BUFFER_H
 
+#pragma once
+
 #include <algorithm>
 #include <list>
 #include <stdint.h>

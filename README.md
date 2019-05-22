@@ -6,11 +6,10 @@ libatbus
 > Build & Run Unit Test in |  Linux+OSX(clang+gcc) | Windows+MinGW(vc+gcc) |
 > -------------------------|--------|---------|
 > Status |  [![Build Status](https://travis-ci.org/atframework/libatbus.svg?branch=master)](https://travis-ci.org/atframework/libatbus) | [![Build status](https://ci.appveyor.com/api/projects/status/v2ufe4xuwbc6gjlf/branch/master?svg=true)](https://ci.appveyor.com/project/owt5008137/libatbus-k408k/branch/master) |
-> Compilers | linux-gcc-4.4 <br /> linux-gcc-4.6 <br /> linux-gcc-4.9 <br /> linux-gcc-6 <br /> linux-clang-3.5 <br /> osx-apple-clang-6.0 <br /> | MSVC 12(Visual Studio 2013) <br /> MSVC 14(Visual Studio 2015) <br /> MSVC 15(Visual Studio 2017) <br /> Mingw32-gcc<br /> Mingw64-gcc
+> Compilers | linux-gcc-4.4 <br /> linux-gcc-4.9 <br /> linux-gcc-5 <br /> linux-gcc-7 <br /> osx-apple-clang-9.0 <br /> | MSVC 12(Visual Studio 2013) <br /> MSVC 14(Visual Studio 2015) <br /> MSVC 14+(Visual Studio 2017) <br /> Mingw32-gcc<br /> Mingw64-gcc
 >
 
-Gitter
-------
+[![Coverage Status](https://coveralls.io/repos/github/atframework/libatbus/badge.svg?branch=master)](https://coveralls.io/github/atframework/libatbus?branch=master)
 [![Gitter](https://badges.gitter.im/atframework/common.svg)](https://gitter.im/atframework/common?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge)
 
 依赖
@@ -21,17 +20,10 @@ Gitter
 > + Clang: 3.0 及以上 （建议 clang 3.4及以上）
 > + VC: 10 及以上 （建议VC 12及以上）
 
-+ [cmake](https://cmake.org/download/) 3.4.0 以上
++ [cmake](https://cmake.org/download/) 3.7.0 以上
 + [msgpack](https://github.com/msgpack/msgpack-c)（用于协议打解包,仅使用头文件）
 + [libuv](http://libuv.org/)（用于网络通道）
 + [atframe_utils](https://github.com/atframework/atframe_utils)（基础公共代码）
-
-
-Why not c?
-------
-本来像用纯c写这个组件的，因为纯c比较容易控制结构清晰和代码简洁，但是为什么之后又改用C++了呢？首先一个原因是初期准备使用的协议打解包组件msgpack是c++的；另一方面c++提供了比较简单好用的数据结构容器和内存管理组件，更重要的是这些东西都是原生跨平台的。所以就干脆用C++和C++风格来实现。
-
-*PS:GCC都转依赖C++了我为嘛不能用？*
 
 关于MsgPack
 ------
@@ -71,12 +63,15 @@ Why not c?
 ------
 使用cmake标准构建方式，默认的编译目标为Debug版本，详见 [使用（编译）流程](docs/Build.md)
 
+**注意： 默认的编译选项是Debug模式，压测和正式环境请使用 cmake -DCMAKE_BUILD_TYPE=RelWithDebInfo 源码目录 [其他选项] 编译（相当于gcc -O2 -g -ggdb -DNDEBUG -Wall -Werror或MSVC /O2）**
+
+**注意： Windows下私有共享内存不允许跨进程共享，公有共享内存必须有管理员权限。如果Windows下出现初始化共享内存错误请使用管理员权限运行。**
+
 使用示例
 ------
 简要的使用示例见 [使用示例](docs/Usage.md)
 
 更加详细的请参考单元测试和[tools](tools)目录内的代码
-
 
 Benchmark
 ------

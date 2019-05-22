@@ -25,3 +25,7 @@ set(LIBUV_ROOT "" CACHE STRING "libuv root directory")
 set(GTEST_ROOT "" CACHE STRING "GTest root directory")
 set(BOOST_ROOT "" CACHE STRING "Boost root directory")
 option(PROJECT_TEST_ENABLE_BOOST_UNIT_TEST "Enable boost unit test." OFF)
+
+# find if we have Unix Sock
+include(CheckIncludeFiles)
+CHECK_INCLUDE_FILES("sys/un.h;sys/socket.h" ATBUS_MACRO_WITH_UNIX_SOCK)

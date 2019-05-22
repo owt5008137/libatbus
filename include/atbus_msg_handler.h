@@ -7,8 +7,10 @@
 
 #pragma once
 
-#ifndef LIBATBUS_MSG_HANDLER_H_
-#define LIBATBUS_MSG_HANDLER_H_
+#ifndef LIBATBUS_MSG_HANDLER_H
+#define LIBATBUS_MSG_HANDLER_H
+
+#pragma once
 
 #include <bitset>
 #include <ctime>
@@ -42,6 +44,7 @@ namespace atbus {
         static int on_recv_data_transfer_rsp(node &n, connection *conn, protocol::msg &, int status, int errcode);
 
         static int on_recv_custom_cmd_req(node &n, connection *conn, protocol::msg &, int status, int errcode);
+        static int on_recv_custom_cmd_rsp(node &n, connection *conn, protocol::msg &, int status, int errcode);
 
         static int on_recv_node_sync_req(node &n, connection *conn, protocol::msg &, int status, int errcode);
         static int on_recv_node_sync_rsp(node &n, connection *conn, protocol::msg &, int status, int errcode);
@@ -51,6 +54,6 @@ namespace atbus {
         static int on_recv_node_ping(node &n, connection *conn, protocol::msg &, int status, int errcode);
         static int on_recv_node_pong(node &n, connection *conn, protocol::msg &, int status, int errcode);
     };
-}
+} // namespace atbus
 
 #endif /* LIBATBUS_MSG_HANDLER_H_ */

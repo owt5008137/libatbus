@@ -21,9 +21,11 @@ if [ $# -gt 4 ]; then
     STATIC_LIMIT_NUM=$4 ;
 fi
 
-./benchmark_io_stream_channel_recv "$ADDRESS" $UNIT_SIZE > recv.log 2>&1 &
+./benchmark_io_stream_channel_recv "$ADDRESS" $UNIT_SIZE > recv-ios.log 2>&1 &
 
 sleep 2;
 
-./benchmark_io_stream_channel_send "$ADDRESS" $UNIT_SIZE $LIMIT_SIZE $STATIC_LIMIT_NUM > send.log 2>&1 &
+for ((i=1;i<=16;++i)); do
+    ./benchmark_io_stream_channel_send "$ADDRESS" $UNIT_SIZE $LIMIT_SIZE $STATIC_LIMIT_NUM > send-ios-$i.log 2>&1 &
+done
 

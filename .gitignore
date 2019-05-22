@@ -27,6 +27,7 @@ build_*
 # prebuilt directory
 /3rd_party/*/prebuilt
 /3rd_party/*/pkg
+/3rd_party/libuv/repo-*
 /3rd_party/c_cpp_utils/repo
 
 # project files

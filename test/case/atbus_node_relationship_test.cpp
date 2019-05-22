@@ -1,7 +1,7 @@
-﻿#include <iostream>
-#include <sstream>
-#include <cstdlib>
+﻿#include <cstdlib>
 #include <cstring>
+#include <iostream>
+#include <sstream>
 
 #include "common/string_oprs.h"
 
@@ -19,8 +19,7 @@
 
 #include "frame/test_macros.h"
 
-CASE_TEST(atbus_node_rela, basic_test)
-{
+CASE_TEST(atbus_node_rela, basic_test) {
     atbus::protocol::msg m_src, m_dst;
     std::string packed_buffer;
     char test_buffer[] = "hello world!";
@@ -35,7 +34,7 @@ CASE_TEST(atbus_node_rela, basic_test)
         packed_buffer = ss.str();
         std::stringstream so;
         util::string::serialization(packed_buffer.data(), packed_buffer.size(), so);
-        CASE_MSG_INFO() << "msgpack encoded(size="<< packed_buffer.size()<<"): " << so.str() << std::endl;
+        CASE_MSG_INFO() << "msgpack encoded(size=" << packed_buffer.size() << "): " << so.str() << std::endl;
     }
 
     msgpack::unpacked result;
@@ -56,12 +55,12 @@ CASE_TEST(atbus_node_rela, basic_test)
         CASE_EXPECT_EQ(456, m_dst.body.forward->from);
         CASE_EXPECT_EQ(789, m_dst.body.forward->to);
         CASE_EXPECT_EQ(210, m_dst.body.forward->router.front());
-        CASE_EXPECT_EQ(0, UTIL_STRFUNC_STRNCMP(test_buffer, reinterpret_cast<const char*>(m_dst.body.forward->content.ptr), sizeof(test_buffer)));
+        CASE_EXPECT_EQ(
+            0, UTIL_STRFUNC_STRNCMP(test_buffer, reinterpret_cast<const char *>(m_dst.body.forward->content.ptr), sizeof(test_buffer)));
     }
 }
 
-CASE_TEST(atbus_node_rela, child_endpoint_opr)
-{
+CASE_TEST(atbus_node_rela, child_endpoint_opr) {
     atbus::node::conf_t conf;
     atbus::node::default_conf(&conf);
     conf.children_mask = 16;
@@ -82,6 +81,7 @@ CASE_TEST(atbus_node_rela, child_endpoint_opr)
 
     // 新端点子域冲突-父子关系
     ep = atbus::endpoint::create(node.get(), 0x12345680, 4, node->get_pid(), node->get_hostname());
+    CASE_EXPECT_EQ(EN_ATBUS_ERR_PARAMS, node->add_endpoint(atbus::endpoint::ptr_t()));
     CASE_EXPECT_EQ(EN_ATBUS_ERR_ATNODE_MASK_CONFLICT, node->add_endpoint(ep));
 
     // 新端点子域冲突-子父关系

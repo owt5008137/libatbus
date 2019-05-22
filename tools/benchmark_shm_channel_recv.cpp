@@ -16,7 +16,7 @@
 
 #include "common/string_oprs.h"
 
-#if defined(UTIL_CONFIG_COMPILER_CXX_LAMBDAS) && UTIL_CONFIG_COMPILER_CXX_LAMBDAS
+#if defined(UTIL_CONFIG_COMPILER_CXX_LAMBDAS) && UTIL_CONFIG_COMPILER_CXX_LAMBDAS && defined(ATBUS_CHANNEL_SHM)
 
 static inline char *get_pid_cur(int pid) {
     static std::vector<std::pair<int, char> > res;
@@ -59,20 +59,20 @@ int main(int argc, char *argv[]) {
 
     srand(static_cast<uint32_t>(time(NULL)));
 
-    size_t sum_recv_len = 0;
+    size_t sum_recv_len   = 0;
     size_t sum_recv_times = 0;
-    size_t sum_recv_err = 0;
-    size_t sum_data_err = 0;
+    size_t sum_recv_err   = 0;
+    size_t sum_data_err   = 0;
 
     // 创建读线程
-    std::thread *read_threads = new std::thread([&] {
-        char *buf_pool = new char[max_n * sizeof(size_t)];
+    std::thread *read_threads = new std::thread([&sum_recv_len, &sum_recv_times, &sum_recv_err, &sum_data_err, max_n, channel] {
+        char *buf_pool  = new char[max_n * sizeof(size_t)];
         char *buf_check = new char[max_n * sizeof(size_t)];
 
         bool is_last_tick_faild = false;
         while (true) {
             size_t n = 0; // 最大 4K-8K的包
-            int res = shm_recv(channel, buf_pool, sizeof(size_t) * max_n, &n);
+            int res  = shm_recv(channel, buf_pool, sizeof(size_t) * max_n, &n);
 
             if (res) {
                 if (EN_ATBUS_ERR_NO_DATA != res) {
@@ -92,7 +92,7 @@ int main(int argc, char *argv[]) {
                 ++sum_recv_times;
                 sum_recv_len += n;
 
-                int pid = *((int *)buf_pool);
+                int pid         = *((int *)buf_pool);
                 char *val_check = get_pid_cur(pid);
 
                 if (0 == *val_check) {
@@ -132,10 +132,10 @@ int main(int argc, char *argv[]) {
 
 
     // 检查状态
-    int secs = 0;
+    int secs            = 0;
     char unit_desc[][4] = {"B", "KB", "MB", "GB"};
-    size_t unit_devi[] = {1UL, 1UL << 10, 1UL << 20, 1UL << 30};
-    size_t unit_index = 0;
+    size_t unit_devi[]  = {1UL, 1UL << 10, 1UL << 20, 1UL << 30};
+    size_t unit_index   = 0;
 
     while (true) {
         ++secs;
@@ -165,7 +165,7 @@ int main(int argc, char *argv[]) {
 
 #else
 
-int main(int argc, char *argv[]) {
+int main() {
     std::cerr << "this benckmark code require your compiler support lambda and c++11/thread" << std::endl;
     return 0;
 }

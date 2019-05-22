@@ -62,8 +62,8 @@ namespace atbus {
                 }
 
                 size_t used = 1;
-                char *d = reinterpret_cast<char *>(pointer);
-                *d = 0x7F & in;
+                char *d     = reinterpret_cast<char *>(pointer);
+                *d          = 0x7F & in;
                 in >>= 7;
 
                 while (in && used + 1 <= s) {
@@ -85,7 +85,7 @@ namespace atbus {
 
                 return used;
             }
-        }
+        } // namespace fn
 
         void *buffer_block::data() { return fn::buffer_next(pointer_, used_); }
 
@@ -147,9 +147,9 @@ namespace atbus {
             }
 
             buffer_block *res = reinterpret_cast<buffer_block *>(pointer);
-            res->size_ = bs;
-            res->pointer_ = fn::buffer_next(pointer, hs);
-            res->used_ = 0;
+            res->size_        = bs;
+            res->pointer_     = fn::buffer_next(pointer, hs);
+            res->used_        = 0;
 
             assert(fn::buffer_next(pointer, fs) >= fn::buffer_next(res->pointer_, res->size_));
             return fn::buffer_next(pointer, fs);
@@ -163,7 +163,7 @@ namespace atbus {
 
 // debug 版本做内存填充，方便调试
 #if !defined(NDEBUG) || defined(_DEBUG)
-            memset(p, 0x5e5e5e5e, full_size(p->size_));
+            memset((void *)p, 0x5e5e5e5e, full_size(p->size_));
 #endif
 
             return fn::buffer_next(p->pointer_, p->size_);
@@ -178,7 +178,7 @@ namespace atbus {
             return s + sizeof(size_t) - pl;
         }
 
-        size_t buffer_block::head_size(size_t s) { return padding_size(sizeof(buffer_block)); }
+        size_t buffer_block::head_size(size_t) { return padding_size(sizeof(buffer_block)); }
 
         size_t buffer_block::full_size(size_t s) { return head_size(s) + padding_size(s); }
 
@@ -196,7 +196,7 @@ namespace atbus {
         bool buffer_manager::set_limit(size_t max_size, size_t max_number) {
             if (NULL == static_buffer_.buffer_) {
                 limit_.limit_number_ = max_number;
-                limit_.limit_size_ = max_size;
+                limit_.limit_size_   = max_size;
                 return true;
             }
 
@@ -215,8 +215,8 @@ namespace atbus {
             }
 
             pointer = res->data();
-            nwrite = res->size();
-            nread = res->raw_size() - nwrite;
+            nwrite  = res->size();
+            nread   = res->raw_size() - nwrite;
             return EN_ATBUS_ERR_SUCCESS;
         }
 
@@ -232,8 +232,8 @@ namespace atbus {
             }
 
             pointer = res->data();
-            nwrite = res->size();
-            nread = res->raw_size() - nwrite;
+            nwrite  = res->size();
+            nread   = res->raw_size() - nwrite;
             return EN_ATBUS_ERR_SUCCESS;
         }
 
@@ -347,8 +347,8 @@ namespace atbus {
             }
 
 #define assign_tail(x) static_buffer_.circle_index_[static_buffer_.tail_] = reinterpret_cast<buffer_block *>(x)
-#define add_tail()                                                        \
-    pointer = static_buffer_.circle_index_[static_buffer_.tail_]->data(); \
+#define add_tail()                                                                     \
+    pointer              = static_buffer_.circle_index_[static_buffer_.tail_]->data(); \
     static_buffer_.tail_ = (static_buffer_.tail_ + 1) % static_buffer_.circle_index_.size()
 
             buffer_block *head = static_buffer_.circle_index_[static_buffer_.head_];
@@ -453,7 +453,7 @@ namespace atbus {
                 size_t free_len = fn::buffer_offset(head, static_buffer_.buffer_);
                 if (free_len >= fs) { // .... new_head NN old_head NNNNNN tail ....
                     void *buffer_start = fn::buffer_next(static_buffer_.buffer_, free_len - fs);
-                    void *next_free = buffer_block::create(buffer_start, fs, s);
+                    void *next_free    = buffer_block::create(buffer_start, fs, s);
                     if (NULL == next_free) {
                         return EN_ATBUS_ERR_MALLOC;
                     }
@@ -469,7 +469,7 @@ namespace atbus {
                     }
 
                     void *buffer_start = fn::buffer_next(tail, free_len - fs);
-                    void *next_free = buffer_block::create(buffer_start, fs, s);
+                    void *next_free    = buffer_block::create(buffer_start, fs, s);
                     if (NULL == next_free) {
                         return EN_ATBUS_ERR_MALLOC;
                     }
@@ -510,7 +510,7 @@ namespace atbus {
 #define assign_tail(x) static_buffer_.circle_index_[static_buffer_.tail_] = reinterpret_cast<buffer_block *>(x)
 #define sub_tail(x) static_buffer_.tail_ = x
 
-            size_t tail_index = index_tail();
+            size_t tail_index  = index_tail();
             buffer_block *tail = static_buffer_.circle_index_[tail_index];
 
             if (s > tail->size()) {
@@ -531,11 +531,11 @@ namespace atbus {
 
             // fix limit and reset to init state
             if (static_empty()) {
-                static_buffer_.head_ = 0;
-                static_buffer_.tail_ = 0;
+                static_buffer_.head_                               = 0;
+                static_buffer_.tail_                               = 0;
                 static_buffer_.circle_index_[static_buffer_.tail_] = reinterpret_cast<buffer_block *>(static_buffer_.buffer_);
 
-                limit_.cost_size_ = 0;
+                limit_.cost_size_   = 0;
                 limit_.cost_number_ = 0;
             } else {
                 limit_.cost_size_ -= limit_.cost_size_ >= s ? s : limit_.cost_size_;
@@ -575,11 +575,11 @@ namespace atbus {
 
             // fix limit and reset to init state
             if (static_empty()) {
-                static_buffer_.head_ = 0;
-                static_buffer_.tail_ = 0;
+                static_buffer_.head_                               = 0;
+                static_buffer_.tail_                               = 0;
                 static_buffer_.circle_index_[static_buffer_.tail_] = reinterpret_cast<buffer_block *>(static_buffer_.buffer_);
 
-                limit_.cost_size_ = 0;
+                limit_.cost_size_   = 0;
                 limit_.cost_number_ = 0;
             } else {
                 limit_.cost_size_ -= limit_.cost_size_ >= s ? s : limit_.cost_size_;
@@ -595,8 +595,8 @@ namespace atbus {
                 return 0;
             }
 
-            buffer_block *head = static_buffer_.circle_index_[static_buffer_.head_];
-            buffer_block *tail = static_buffer_.circle_index_[static_buffer_.tail_];
+            buffer_block *head       = static_buffer_.circle_index_[static_buffer_.head_];
+            buffer_block *tail       = static_buffer_.circle_index_[static_buffer_.tail_];
             buffer_block *last_block = static_back();
             if (NULL == head || NULL == tail || NULL == last_block) {
                 return EN_ATBUS_ERR_NO_DATA;
@@ -621,7 +621,7 @@ namespace atbus {
 
                     assign_tail(fn::buffer_next(last_block, buffer_block::full_size(last_block->size_)));
                 } else { // NN new_tail ... head NNNNNN old_tail ....
-                    free_len = fn::buffer_offset(static_buffer_.buffer_, head);
+                    free_len            = fn::buffer_offset(static_buffer_.buffer_, head);
                     size_t new_block_sz = buffer_block::full_size(s + last_block->size_);
 
                     // 必须预留空区域，不能让new_tail == head
@@ -638,7 +638,7 @@ namespace atbus {
 
                     // memory copy
                     {
-                        size_t tail_index = index_tail();
+                        size_t tail_index             = index_tail();
                         buffer_block *relocated_block = reinterpret_cast<buffer_block *>(static_buffer_.buffer_);
 
                         pointer = fn::buffer_next(relocated_block->data(), last_block->raw_size());
@@ -689,14 +689,14 @@ namespace atbus {
 
             // in case of cover buffer when relocate the header of head block
             buffer_block old_head = *head;
-            size_t new_head_s = s + old_head.raw_size();
-            size_t new_head_fs = buffer_block::full_size(new_head_s);
+            size_t new_head_s     = s + old_head.raw_size();
+            size_t new_head_fs    = buffer_block::full_size(new_head_s);
 
             if (tail >= head) { // .... head NNNNNN tail ....
                 size_t free_len = fn::buffer_offset(head, static_buffer_.buffer_);
                 if (free_len >= fs) { // .... new_head NN old_head NNNNNN tail ....
                     void *buffer_start = fn::buffer_next(static_buffer_.buffer_, free_len - fs);
-                    void *next_free = buffer_block::create(buffer_start, new_head_fs, new_head_s);
+                    void *next_free    = buffer_block::create(buffer_start, new_head_fs, new_head_s);
                     if (NULL == next_free) {
                         return EN_ATBUS_ERR_MALLOC;
                     }
@@ -713,7 +713,7 @@ namespace atbus {
                     }
 
                     void *buffer_start = fn::buffer_next(tail, free_len - new_head_fs);
-                    void *next_free = buffer_block::create(buffer_start, new_head_fs, new_head_s);
+                    void *next_free    = buffer_block::create(buffer_start, new_head_fs, new_head_s);
                     if (NULL == next_free) {
                         return EN_ATBUS_ERR_MALLOC;
                     }
@@ -821,7 +821,7 @@ namespace atbus {
 
             // fix limit
             if (dynamic_empty()) {
-                limit_.cost_size_ = 0;
+                limit_.cost_size_   = 0;
                 limit_.cost_number_ = 0;
             } else {
                 limit_.cost_size_ -= limit_.cost_size_ >= s ? s : limit_.cost_size_;
@@ -852,7 +852,7 @@ namespace atbus {
 
             // fix limit
             if (dynamic_empty()) {
-                limit_.cost_size_ = 0;
+                limit_.cost_size_   = 0;
                 limit_.cost_number_ = 0;
             } else {
                 limit_.cost_size_ -= limit_.cost_size_ >= s ? s : limit_.cost_size_;
@@ -937,27 +937,27 @@ namespace atbus {
                 dynamic_buffer_.pop_front();
             }
 
-            limit_.cost_size_ = 0;
-            limit_.cost_number_ = 0;
+            limit_.cost_size_    = 0;
+            limit_.cost_number_  = 0;
             limit_.limit_number_ = 0;
-            limit_.limit_size_ = 0;
+            limit_.limit_size_   = 0;
         }
 
         void buffer_manager::set_mode(size_t max_size, size_t max_number) {
             reset();
 
             if (0 != max_size && max_number > 0) {
-                size_t bfs = buffer_block::padding_size(max_size);
+                size_t bfs             = buffer_block::padding_size(max_size);
                 static_buffer_.buffer_ = ::malloc(bfs);
                 if (NULL != static_buffer_.buffer_) {
                     static_buffer_.size_ = bfs;
 
                     // left 1 empty bound
                     static_buffer_.circle_index_.resize(max_number + 1, NULL);
-                    limit_.limit_size_ = max_size;
+                    limit_.limit_size_   = max_size;
                     limit_.limit_number_ = max_number;
                 }
             }
         }
-    }
-}
+    } // namespace detail
+} // namespace atbus

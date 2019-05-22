@@ -12,32 +12,32 @@ environment:
         PREBUILT_ROOT: C:/Users/appveyor/prebuilt
         SETUP_ROOT: C:/Users/appveyor/setup
         PKG_SRC_ROOT: C:/Users/appveyor/pkg_src
-        LIBUV_VERSION: 1.11.0
+        LIBUV_VERSION: 1.18.0
         MSYS2_PREFIX: C:/tools/msys64
         MSYS2_LOG_FILE: C:/Users/appveyor/pkg_src/output.log
     matrix:
         - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2017
           platform: x64
-          LIBUV_PKG: http://dist.libuv.org/dist/v1.11.0/libuv-x64-v1.11.0.build6.exe
-          LIBUV_ROOT: C:/Users/appveyor/prebuilt/x64/1.11.0
+          LIBUV_PKG: https://dist.libuv.org/dist/v1.18.0/libuv-x64-v1.18.0.build20.exe
+          LIBUV_ROOT: C:/Users/appveyor/prebuilt/x64/1.18.0
           CMAKE_GEN: Visual Studio 15 2017 Win64
         - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2015
           platform: x64
-          LIBUV_PKG: http://dist.libuv.org/dist/v1.11.0/libuv-x64-v1.11.0.build6.exe
-          LIBUV_ROOT: C:/Users/appveyor/prebuilt/x64/1.11.0
+          LIBUV_PKG: https://dist.libuv.org/dist/v1.18.0/libuv-x64-v1.18.0.build20.exe
+          LIBUV_ROOT: C:/Users/appveyor/prebuilt/x64/1.18.0
           CMAKE_GEN: Visual Studio 14 2015 Win64
         - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2013
           platform: x64
-          LIBUV_PKG: http://dist.libuv.org/dist/v1.11.0/libuv-x64-v1.11.0.build6.exe
-          LIBUV_ROOT: C:/Users/appveyor/prebuilt/x64/1.11.0
+          LIBUV_PKG: https://dist.libuv.org/dist/v1.18.0/libuv-x64-v1.18.0.build20.exe
+          LIBUV_ROOT: C:/Users/appveyor/prebuilt/x64/1.18.0
           CMAKE_GEN: Visual Studio 12 2013 Win64
         - os: MinGW
-          LIBUV_PKG: http://dist.libuv.org/dist/v1.11.0/libuv-v1.11.0.tar.gz
-          LIBUV_ROOT: C:/Users/appveyor/prebuilt/mingw32/1.11.0
+          LIBUV_PKG: https://dist.libuv.org/dist/v1.18.0/libuv-v1.18.0.tar.gz
+          LIBUV_ROOT: C:/Users/appveyor/prebuilt/mingw32/1.18.0
           CMAKE_GEN: MinGW32
         - os: MinGW
-          LIBUV_PKG: http://dist.libuv.org/dist/v1.11.0/libuv-v1.11.0.tar.gz
-          LIBUV_ROOT: C:/Users/appveyor/prebuilt/mingw64/1.11.0
+          LIBUV_PKG: https://dist.libuv.org/dist/v1.18.0/libuv-v1.18.0.tar.gz
+          LIBUV_ROOT: C:/Users/appveyor/prebuilt/mingw64/1.18.0
           CMAKE_GEN: MinGW64
 
 configuration: RelWithDebInfo
@@ -258,39 +258,30 @@ test_script:
 
         if ( "$Env:OS" -ieq "MinGW" ) {
 
-            if ( -not (  Test-Path "$Env:APPVEYOR_BUILD_FOLDER/build/test/atbus_unit_test.exe" ) ) {
-
-                echo "Build failed.";
-
-                exit -1;
-
-            }
-
-            <#
             if ( "$Env:CMAKE_GEN" -ieq "MinGW32" ) {
 
-                echo "$Env:MSYS2_PREFIX/msys2_shell -mingw32 -lc cd '$Env:APPVEYOR_BUILD_FOLDER/build'; ./test/atbus_unit_test.exe"
+                echo "$Env:MSYS2_PREFIX/msys2_shell -mingw32 -lc cd '$Env:APPVEYOR_BUILD_FOLDER/build'; ctest . -V"
 
-                & "$Env:MSYS2_PREFIX/msys2_shell" -mingw32 -lc "cd '$Env:APPVEYOR_BUILD_FOLDER/build'; ./test/atbus_unit_test.exe > '$Env:MSYS2_LOG_FILE' 2>&1" | Out-Host
+                & "$Env:MSYS2_PREFIX/msys2_shell" -mingw32 -lc "cd '$Env:APPVEYOR_BUILD_FOLDER/build'; ctest . -V > '$Env:MSYS2_LOG_FILE' 2>&1" | Out-Host
 
                 Get-Content "$Env:MSYS2_LOG_FILE"
 
             } else {
 
-                echo "$Env:MSYS2_PREFIX/msys2_shell -mingw64 -lc cd '$Env:APPVEYOR_BUILD_FOLDER/build'; ./test/atbus_unit_test.exe"
+                echo "$Env:MSYS2_PREFIX/msys2_shell -mingw64 -lc cd '$Env:APPVEYOR_BUILD_FOLDER/build'; ctest . -V"
 
-                & "$Env:MSYS2_PREFIX/msys2_shell" -mingw64 -lc "cd '$Env:APPVEYOR_BUILD_FOLDER/build'; ./test/atbus_unit_test.exe > '$Env:MSYS2_LOG_FILE' 2>&1" | Out-Host
+                & "$Env:MSYS2_PREFIX/msys2_shell" -mingw64 -lc "cd '$Env:APPVEYOR_BUILD_FOLDER/build'; ctest . -V > '$Env:MSYS2_LOG_FILE' 2>&1" | Out-Host
 
                 Get-Content "$Env:MSYS2_LOG_FILE"
 
             }
-            #>
 
         } else {
 
-            Copy-Item -Force "$Env:LIBUV_ROOT/libuv.dll" ./
+            $Env:PATH = "$Env:PATH;$Env:LIBUV_ROOT"
 
-            & "test/$Env:CONFIGURATION/atbus_unit_test.exe"
+            & ctest . -V -C $Env:CONFIGURATION
+
         }
 
 #

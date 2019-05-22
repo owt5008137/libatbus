@@ -1,11 +1,9 @@
 ﻿
 EchoWithColor(COLOR GREEN "-- Configure Unit Test ${CMAKE_CURRENT_LIST_DIR}")
 
-enable_testing()
-
 include("${PROJECT_TEST_BAS_DIR}/test.build_bin.cmake")
 
-include_directories(${PROJECT_ROOT_SRC_DIR})
+include_directories(${PROJECT_LIBATBUS_ROOT_SRC_DIR})
 
 file(GLOB_RECURSE PROJECT_TEST_SRC_LIST
     ${PROJECT_TEST_SRC_DIR}/app/*.cpp
@@ -21,7 +19,9 @@ file(GLOB_RECURSE PROJECT_TEST_SRC_LIST
 source_group_by_dir(PROJECT_TEST_SRC_LIST)
 
 # ============ test - coroutine test frame ============
-set(EXECUTABLE_OUTPUT_PATH "${PROJECT_BINARY_DIR}/test")
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${PROJECT_BINARY_DIR}/test")
+
+add_compiler_define(_CRT_SECURE_NO_WARNINGS=1)
 
 add_executable(atbus_unit_test ${PROJECT_TEST_SRC_LIST})
 target_link_libraries(atbus_unit_test
@@ -29,7 +29,12 @@ target_link_libraries(atbus_unit_test
     ${PROJECT_TEST_LIB_LINK}
     ${3RD_PARTY_LIBUV_LINK_NAME}
     ${3RD_PARTY_ATFRAME_UTILS_LINK_NAME}
+    ${3RD_PARTY_LIBUV_LINK_DEPS}
     ${COMPILER_OPTION_EXTERN_CXX_LIBS}
 )
+
+if (MSVC)
+    set_property(TARGET atbus_unit_test PROPERTY FOLDER "atframework/test")
+endif ()
 
 add_test(test atbus_unit_test)

@@ -1,11 +1,16 @@
-#ifndef LIBATBUS_PROTOCOL_DESC_H_
-#define LIBATBUS_PROTOCOL_DESC_H_
+#ifndef LIBATBUS_PROTOCOL_DESC_H
+#define LIBATBUS_PROTOCOL_DESC_H
 
 #pragma once
 
 #include <cstddef>
 #include <ostream>
 #include <stdint.h>
+
+#if defined(_MSC_VER)
+#pragma warning(push)
+#pragma warning(disable : 4702)
+#endif
 
 #include <msgpack.hpp>
 
@@ -16,6 +21,7 @@ enum ATBUS_PROTOCOL_CMD {
     ATBUS_CMD_DATA_TRANSFORM_REQ = 1,
     ATBUS_CMD_DATA_TRANSFORM_RSP,
     ATBUS_CMD_CUSTOM_CMD_REQ,
+    ATBUS_CMD_CUSTOM_CMD_RSP,
 
     // 节点控制协议
     ATBUS_CMD_NODE_SYNC_REQ = 9,
@@ -87,7 +93,7 @@ namespace atbus {
 
             forward_data() : from(0), to(0), flags(0) {
                 content.size = 0;
-                content.ptr = NULL;
+                content.ptr  = NULL;
             }
 
             inline bool check_flag(flag_t f) { return 0 != (flags & (1 << f)); }
@@ -131,9 +137,9 @@ namespace atbus {
         };
 
         struct node_data {
-            ATBUS_MACRO_BUSID_TYPE bus_id;  // ID: 0
-            bool overwrite;                 // ID: 1
-            bool flags;                     // ID: 2
+            ATBUS_MACRO_BUSID_TYPE bus_id; // ID: 0
+            bool overwrite;                // ID: 1
+            bool flags;                    // ID: 2
             ATBUS_MACRO_BUSID_TYPE children_id_mask;
             std::vector<node_data> children;
 
@@ -200,7 +206,7 @@ namespace atbus {
             uint32_t flags;                     // ID: 5
 
 
-            reg_data() : bus_id(0), pid(0), children_id_mask(0), flags(0){}
+            reg_data() : bus_id(0), pid(0), children_id_mask(0), flags(0) {}
 
             MSGPACK_DEFINE(bus_id, pid, hostname, channels, children_id_mask, flags);
 
@@ -285,9 +291,9 @@ namespace atbus {
                     return ret;
                 }
 
-                ret->from = from;
-                ret->to = to;
-                ret->content.ptr = buffer;
+                ret->from         = from;
+                ret->to           = to;
+                ret->content.ptr  = buffer;
                 ret->content.size = s;
                 return ret;
             }
@@ -335,7 +341,7 @@ namespace atbus {
             ATBUS_PROTOCOL_CMD cmd;            // ID: 0
             int32_t type;                      // ID: 1
             int32_t ret;                       // ID: 2
-            uint32_t sequence;                 // ID: 3
+            uint64_t sequence;                 // ID: 3
             ATBUS_MACRO_BUSID_TYPE src_bus_id; // ID: 4
 
             msg_head() : cmd(ATBUS_CMD_INVALID), type(0), ret(0), sequence(0) {}
@@ -362,10 +368,10 @@ namespace atbus {
             msg_body body; // map.key = 2
 
             void init(ATBUS_MACRO_BUSID_TYPE src_bus_id, ATBUS_PROTOCOL_CMD cmd, int32_t type, int32_t ret, uint32_t seq) {
-                head.cmd = cmd;
-                head.type = type;
-                head.ret = ret;
-                head.sequence = seq;
+                head.cmd        = cmd;
+                head.type       = type;
+                head.ret        = ret;
+                head.sequence   = seq;
                 head.src_bus_id = src_bus_id;
             }
 
@@ -376,8 +382,8 @@ namespace atbus {
                 return os;
             }
         };
-    }
-}
+    } // namespace protocol
+} // namespace atbus
 
 
 // User defined class template specialization
@@ -390,7 +396,7 @@ namespace msgpack {
                 msgpack::object const &operator()(msgpack::object const &o, atbus::protocol::bin_data_block &v) const {
                     if (o.type != msgpack::type::BIN) throw msgpack::type_error();
 
-                    v.ptr = o.via.bin.ptr;
+                    v.ptr  = o.via.bin.ptr;
                     v.size = o.via.bin.size;
                     return o;
                 }
@@ -409,9 +415,9 @@ namespace msgpack {
             template <>
             struct object_with_zone<atbus::protocol::bin_data_block> {
                 void operator()(msgpack::object::with_zone &o, atbus::protocol::bin_data_block const &v) const {
-                    o.type = type::BIN;
+                    o.type         = type::BIN;
                     o.via.bin.size = static_cast<uint32_t>(v.size);
-                    o.via.bin.ptr = reinterpret_cast<const char *>(v.ptr);
+                    o.via.bin.ptr  = reinterpret_cast<const char *>(v.ptr);
                 }
             };
 
@@ -440,7 +446,8 @@ namespace msgpack {
                             break;
                         }
 
-                        case ATBUS_CMD_CUSTOM_CMD_REQ: {
+                        case ATBUS_CMD_CUSTOM_CMD_REQ:
+                        case ATBUS_CMD_CUSTOM_CMD_RSP: {
                             body_obj.convert(*v.body.make_body(v.body.custom));
                             break;
                         }
@@ -500,7 +507,8 @@ namespace msgpack {
                         break;
                     }
 
-                    case ATBUS_CMD_CUSTOM_CMD_REQ: {
+                    case ATBUS_CMD_CUSTOM_CMD_REQ:
+                    case ATBUS_CMD_CUSTOM_CMD_RSP: {
                         if (NULL == v.body.custom) {
                             o.pack_nil();
                         } else {
@@ -559,11 +567,11 @@ namespace msgpack {
             template <>
             struct object_with_zone<atbus::protocol::msg> {
                 void operator()(msgpack::object::with_zone &o, atbus::protocol::msg const &v) const {
-                    o.type = type::MAP;
+                    o.type         = type::MAP;
                     o.via.map.size = 2;
-                    o.via.map.ptr = static_cast<msgpack::object_kv *>(o.zone.allocate_align(sizeof(msgpack::object_kv) * o.via.map.size));
+                    o.via.map.ptr  = static_cast<msgpack::object_kv *>(o.zone.allocate_align(sizeof(msgpack::object_kv) * o.via.map.size));
 
-                    o.via.map.ptr[0] = msgpack::object_kv();
+                    o.via.map.ptr[0]     = msgpack::object_kv();
                     o.via.map.ptr[0].key = msgpack::object(1);
                     v.head.msgpack_object(&o.via.map.ptr[0].val, o.zone);
 
@@ -581,7 +589,8 @@ namespace msgpack {
                         break;
                     }
 
-                    case ATBUS_CMD_CUSTOM_CMD_REQ: {
+                    case ATBUS_CMD_CUSTOM_CMD_REQ:
+                    case ATBUS_CMD_CUSTOM_CMD_RSP: {
                         if (NULL == v.body.custom) {
                             o.via.map.ptr[1].val = msgpack::object();
                         } else {
@@ -639,5 +648,9 @@ namespace msgpack {
         } // namespace adaptor
     }     // MSGPACK_API_VERSION_NAMESPACE(MSGPACK_DEFAULT_API_NS)
 } // namespace msgpack
+
+#if defined(_MSC_VER)
+#pragma warning(pop)
+#endif
 
 #endif // LIBATBUS_PROTOCOL_DESC_H_

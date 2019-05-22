@@ -1,7 +1,17 @@
-﻿cmake_minimum_required(VERSION 3.3.0)
-cmake_policy(SET CMP0054 NEW)
+﻿cmake_minimum_required(VERSION 3.7.0)
+if (CMAKE_VERSION VERSION_GREATER_EQUAL "3.12")
+    cmake_policy(SET CMP0074 NEW)
+endif()
 
-project(libatbus)
+enable_testing()
+
+project(libatbus C CXX)
+
+set(LIBATBUS_VERSION_MAJOR "1")
+set(LIBATBUS_VERSION_MINOR "1")
+set(LIBATBUS_VERSION_PATCH "0")
+set(LIBATBUS_VERSION "${LIBATBUS_VERSION_MAJOR}.${LIBATBUS_VERSION_MINOR}.${LIBATBUS_VERSION_PATCH}")
+
 
 # 准备下载依赖组件
 include ("${CMAKE_CURRENT_LIST_DIR}/3rd_party/atframe_utils/libatframe_utils.prepare.cmake")
@@ -30,12 +40,52 @@ EchoWithColor(COLOR GREEN "-- Build Type: ${CMAKE_BUILD_TYPE}")
 ########################################################################
 # 导入项目配置
 ## 导入所有 macro 定义
-include_macro_recurse(${CMAKE_CURRENT_LIST_DIR})
+include("${CMAKE_CURRENT_LIST_DIR}/3rd_party/3rd_party.macro.cmake")
+include("${CMAKE_CURRENT_LIST_DIR}/include/include.macro.cmake")
+include("${CMAKE_CURRENT_LIST_DIR}/src/libatbus.macro.cmake")
+include("${CMAKE_CURRENT_LIST_DIR}/tools/tools.macro.cmake")
+
+
+# ================ multi thread ================
+find_package(Threads)
+if (CMAKE_USE_PTHREADS_INIT)
+    add_definitions(-D_POSIX_MT_)
+    if(NOT ANDROID)
+        list(APPEND COMPILER_OPTION_EXTERN_CXX_LIBS pthread)
+    endif ()
+    if (THREADS_PREFER_PTHREAD_FLAG)
+        add_definitions(${THREADS_PREFER_PTHREAD_FLAG})
+    endif ()
+endif ()
 
 ## 导入工程项目
-if ( "${CMAKE_CURRENT_LIST_DIR}/3rd_party/atframe_utils/repo" STREQUAL ${3RD_PARTY_ATFRAME_UTILS_PKG_DIR})
-    add_subdirectory(${3RD_PARTY_ATFRAME_UTILS_PKG_DIR})
+if(TARGET ${3RD_PARTY_ATFRAME_UTILS_LINK_NAME})
+    message(STATUS "${3RD_PARTY_ATFRAME_UTILS_LINK_NAME} already exist, use it directly.")
+else()
+    if (NOT EXISTS "${CMAKE_BINARY_DIR}/deps/${3RD_PARTY_ATFRAME_UTILS_LINK_NAME}")
+        file(MAKE_DIRECTORY "${CMAKE_BINARY_DIR}/deps/${3RD_PARTY_ATFRAME_UTILS_LINK_NAME}")
+    endif ()
+    add_subdirectory(${3RD_PARTY_ATFRAME_UTILS_PKG_DIR} "${CMAKE_BINARY_DIR}/deps/${3RD_PARTY_ATFRAME_UTILS_LINK_NAME}")
 endif()
+
+if (COMPILER_STRICT_EXTRA_CFLAGS)
+    add_definitions(${COMPILER_STRICT_EXTRA_CFLAGS})
+endif ()
+
+if (COMPILER_STRICT_CFLAGS)
+    add_definitions(${COMPILER_STRICT_CFLAGS})
+
+    # TODO 先临时关闭下VC下的int类型转换warning，后面再修订
+    if (MSVC)
+        add_definitions(/wd4244 /wd4267)
+    endif ()
+endif ()
+
+# VS 2013的STL里会报这个warning
+if (MSVC_VERSION LESS_EQUAL 1800)
+    add_definitions(/wd4702)
+endif ()
+
 add_subdirectory("${CMAKE_CURRENT_LIST_DIR}/src")
 
 if (PROJECT_ENABLE_SAMPLE)
@@ -50,3 +100,32 @@ endif()
 if (PROJECT_ENABLE_TOOLS)
     add_subdirectory("${CMAKE_CURRENT_LIST_DIR}/tools")
 endif()
+
+## 生成文档和导入配置
+
+# Install configuration
+set(CMAKE_INSTALL_CMAKEDIR "${CMAKE_INSTALL_LIBDIR}/cmake" CACHE STRING "Directory relative to CMAKE_INSTALL to install the cmake configuration files")
+
+include(CMakePackageConfigHelpers)
+set(INCLUDE_INSTALL_DIR include)
+
+file(MAKE_DIRECTORY "${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/cmake")
+
+configure_package_config_file(
+    "${CMAKE_CURRENT_LIST_DIR}/libatbus-config.cmake.in"
+    "${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/cmake/libatbus-config.cmake"
+    INSTALL_DESTINATION ${CMAKE_INSTALL_CMAKEDIR}
+    PATH_VARS LIBATBUS_VERSION INCLUDE_INSTALL_DIR CMAKE_INSTALL_LIBDIR PROJECT_SOURCE_DIR
+    NO_CHECK_REQUIRED_COMPONENTS_MACRO
+)
+
+write_basic_package_version_file(
+    "${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/cmake/libatbus-config-version.cmake"
+    VERSION ${LIBATBUS_VERSION}
+    COMPATIBILITY SameMajorVersion
+)
+
+install(
+    FILES "${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/cmake/libatbus-config.cmake" "${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/cmake/libatbus-config-version.cmake"
+    DESTINATION ${CMAKE_INSTALL_CMAKEDIR}
+)

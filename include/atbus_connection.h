@@ -7,8 +7,10 @@
 
 #pragma once
 
-#ifndef LIBATBUS_CONNECTION_H_
-#define LIBATBUS_CONNECTION_H_
+#ifndef LIBATBUS_CONNECTION_H
+#define LIBATBUS_CONNECTION_H
+
+#pragma once
 
 #include <bitset>
 #include <ctime>
@@ -26,14 +28,16 @@
 #include "detail/libatbus_channel_export.h"
 #include "detail/libatbus_config.h"
 #include "detail/libatbus_error.h"
-#include "detail/libatbus_protocol.h"
 
 namespace atbus {
+    namespace protocol {
+        struct msg;
+    }
 
     class node;
     class endpoint;
 
-    class connection CLASS_FINAL : public util::design_pattern::noncopyable {
+    class connection UTIL_CONFIG_FINAL : public util::design_pattern::noncopyable {
     public:
         typedef std::shared_ptr<connection> ptr_t;
 
@@ -56,6 +60,7 @@ namespace atbus {
                 ACCESS_SHARE_HOST, /** 共享物理机（共享内存通道的物理机共享） **/
                 RESETTING,         /** 正在执行重置（防止递归死循环） **/
                 DESTRUCTING,       /** 正在执行析构（屏蔽某些接口） **/
+                LISTEN_FD,         /** 是否是用于listen的连接 **/
                 MAX
             };
         } flag_t;
@@ -114,7 +119,7 @@ namespace atbus {
 
 
         /**
-         * @brief 监听数据接收地址
+         * @brief 发送数据
          * @param buffer 数据块地址
          * @param s 数据块长度
          * @return 0或错误码
@@ -174,11 +179,13 @@ namespace atbus {
         static void iostream_on_written(channel::io_stream_channel *channel, channel::io_stream_connection *connection, int status,
                                         void *buffer, size_t s);
 
+#ifdef ATBUS_CHANNEL_SHM
         static int shm_proc_fn(node &n, connection &conn, time_t sec, time_t usec);
 
         static int shm_free_fn(node &n, connection &conn);
 
         static int shm_push_fn(connection &conn, const void *buffer, size_t s);
+#endif
 
         static int mem_proc_fn(node &n, connection &conn, time_t sec, time_t usec);
 
@@ -208,11 +215,13 @@ namespace atbus {
             size_t len;
         } conn_data_mem;
 
+#ifdef ATBUS_CHANNEL_SHM
         typedef struct {
             channel::shm_channel *channel;
             key_t shm_key;
             size_t len;
         } conn_data_shm;
+#endif
 
         typedef struct {
             channel::io_stream_channel *channel;
@@ -222,7 +231,9 @@ namespace atbus {
         typedef struct {
             typedef union {
                 conn_data_mem mem;
+#ifdef ATBUS_CHANNEL_SHM
                 conn_data_shm shm;
+#endif
                 conn_data_ios ios_fd;
             } shared_t;
             typedef int (*proc_fn_t)(node &n, connection &conn, time_t sec, time_t usec);
@@ -239,6 +250,6 @@ namespace atbus {
 
         friend class endpoint;
     };
-}
+} // namespace atbus
 
 #endif /* LIBATBUS_CONNECTION_H_ */

@@ -5,6 +5,8 @@
 #ifndef LIBATBUS_LIBATBUS_ADAPTER_LIBUV_H
 #define LIBATBUS_LIBATBUS_ADAPTER_LIBUV_H
 
+#pragma once
+
 #include "uv.h"
 
 namespace atbus {

@@ -12,9 +12,11 @@ if [ $# -gt 2 ]; then
     UNIT_SIZE=$2 ;
 fi
 
-./benchmark_shm_channel_recv $ADDRESS $UNIT_SIZE $SHM_SIZE > recv.log 2>&1 &
+./benchmark_shm_channel_recv $ADDRESS $UNIT_SIZE $SHM_SIZE > recv-shm.log 2>&1 &
 
 sleep 2;
 
-./benchmark_shm_channel_send $ADDRESS $UNIT_SIZE $SHM_SIZE > send.log 2>&1 &
+for ((i=1;i<=16;++i)); do
+    ./benchmark_shm_channel_send $ADDRESS $UNIT_SIZE $SHM_SIZE > send-shm-$i.log 2>&1 &
+done
 

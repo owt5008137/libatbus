@@ -1,4 +1,7 @@
-﻿
+﻿if (CMAKE_VERSION VERSION_GREATER_EQUAL "3.10")
+    include_guard(GLOBAL)
+endif()
+
 # =========== 3rdparty msgpack ==================
 if(NOT 3RD_PARTY_MSGPACK_BASE_DIR)
     set (3RD_PARTY_MSGPACK_BASE_DIR ${CMAKE_CURRENT_LIST_DIR})
@@ -7,7 +10,8 @@ set (3RD_PARTY_MSGPACK_PKG_DIR "${3RD_PARTY_MSGPACK_BASE_DIR}/pkg")
 
 set (3RD_PARTY_MSGPACK_ROOT_DIR "${CMAKE_CURRENT_LIST_DIR}/prebuilt/${PLATFORM_BUILD_PLATFORM_NAME}")
 
-set(3RD_PARTY_MSGPACK_VERSION "2.1.1")
+set(3RD_PARTY_MSGPACK_VERSION "3.1.1")
+set(3RD_PARTY_MSGPACK_MSVC_PATCH "master")
 
 if (Msgpack_ROOT)
     set(MSGPACK_ROOT ${Msgpack_ROOT})
@@ -28,24 +32,45 @@ if(NOT MSGPACK_FOUND)
     endif()
 
     if(NOT EXISTS "${3RD_PARTY_MSGPACK_ROOT_DIR}/include/msgpack.hpp")
-        if(NOT EXISTS "${3RD_PARTY_MSGPACK_PKG_DIR}/msgpack-${3RD_PARTY_MSGPACK_VERSION}.tar.gz")
-            FindConfigurePackageDownloadFile("https://github.com/msgpack/msgpack-c/releases/download/cpp-${3RD_PARTY_MSGPACK_VERSION}/msgpack-${3RD_PARTY_MSGPACK_VERSION}.tar.gz" "${3RD_PARTY_MSGPACK_PKG_DIR}/msgpack-${3RD_PARTY_MSGPACK_VERSION}.tar.gz")
-        endif()
-        find_program(TAR_EXECUTABLE tar)
-        if(APPLE)
-            execute_process(COMMAND ${TAR_EXECUTABLE} -xvf "msgpack-${3RD_PARTY_MSGPACK_VERSION}.tar.gz"
-                WORKING_DIRECTORY ${3RD_PARTY_MSGPACK_PKG_DIR}
-            )
+        if (MSVC)
+            find_package(Git)
+            if (NOT GIT_FOUND)
+                message(FATAL_ERROR "git is required for fetch msgpack-c")
+            endif()
+
+            if (EXISTS "${3RD_PARTY_MSGPACK_PKG_DIR}/msgpack-${3RD_PARTY_MSGPACK_MSVC_PATCH}")
+                execute_process(COMMAND ${GIT_EXECUTABLE} reset --hard
+                    WORKING_DIRECTORY "${3RD_PARTY_MSGPACK_PKG_DIR}/msgpack-${3RD_PARTY_MSGPACK_MSVC_PATCH}"
+                )
+            else()
+                execute_process(COMMAND ${GIT_EXECUTABLE} clone --depth=1 -b ${3RD_PARTY_MSGPACK_MSVC_PATCH} "https://github.com/owent-contrib/msgpack-c.git" "msgpack-${3RD_PARTY_MSGPACK_MSVC_PATCH}"
+                    WORKING_DIRECTORY ${3RD_PARTY_MSGPACK_PKG_DIR}
+                )
+            endif()
         else()
-            execute_process(COMMAND ${TAR_EXECUTABLE} -axvf "msgpack-${3RD_PARTY_MSGPACK_VERSION}.tar.gz"
-                WORKING_DIRECTORY ${3RD_PARTY_MSGPACK_PKG_DIR}
-            )
+            if(NOT EXISTS "${3RD_PARTY_MSGPACK_PKG_DIR}/msgpack-${3RD_PARTY_MSGPACK_VERSION}.tar.gz")
+                FindConfigurePackageDownloadFile("https://github.com/msgpack/msgpack-c/releases/download/cpp-${3RD_PARTY_MSGPACK_VERSION}/msgpack-${3RD_PARTY_MSGPACK_VERSION}.tar.gz" "${3RD_PARTY_MSGPACK_PKG_DIR}/msgpack-${3RD_PARTY_MSGPACK_VERSION}.tar.gz")
+            endif()
+            find_program(TAR_EXECUTABLE tar)
+            if(APPLE)
+                execute_process(COMMAND ${TAR_EXECUTABLE} -xvf "msgpack-${3RD_PARTY_MSGPACK_VERSION}.tar.gz"
+                    WORKING_DIRECTORY ${3RD_PARTY_MSGPACK_PKG_DIR}
+                )
+            else()
+                execute_process(COMMAND ${TAR_EXECUTABLE} -axvf "msgpack-${3RD_PARTY_MSGPACK_VERSION}.tar.gz"
+                    WORKING_DIRECTORY ${3RD_PARTY_MSGPACK_PKG_DIR}
+                )
+            endif()
         endif()
     endif()
 
     if(NOT EXISTS "${3RD_PARTY_MSGPACK_ROOT_DIR}/include/msgpack.hpp")
         file(MAKE_DIRECTORY ${3RD_PARTY_MSGPACK_ROOT_DIR})
-        file(RENAME "${3RD_PARTY_MSGPACK_PKG_DIR}/msgpack-${3RD_PARTY_MSGPACK_VERSION}/include" "${3RD_PARTY_MSGPACK_ROOT_DIR}/include")
+        if (EXISTS "${3RD_PARTY_MSGPACK_PKG_DIR}/msgpack-${3RD_PARTY_MSGPACK_VERSION}")
+            file(RENAME "${3RD_PARTY_MSGPACK_PKG_DIR}/msgpack-${3RD_PARTY_MSGPACK_VERSION}/include" "${3RD_PARTY_MSGPACK_ROOT_DIR}/include")
+        else()
+            file(RENAME "${3RD_PARTY_MSGPACK_PKG_DIR}/msgpack-${3RD_PARTY_MSGPACK_MSVC_PATCH}/include" "${3RD_PARTY_MSGPACK_ROOT_DIR}/include")
+        endif()
     endif()
 
     set(MSGPACK_INCLUDE_DIRS "${3RD_PARTY_MSGPACK_ROOT_DIR}/include")

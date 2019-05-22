@@ -1,40 +1,39 @@
-﻿#include <iostream>
-#include <fstream>
+﻿#include <chrono>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
 #include <ctime>
+#include <fstream>
+#include <functional>
+#include <iostream>
 #include <map>
 #include <memory>
-#include <chrono>
-#include <functional>
 
-#include <detail/libatbus_error.h>
 #include "detail/libatbus_channel_export.h"
 #include "frame/test_macros.h"
+#include <detail/libatbus_error.h>
 
 #ifndef _WIN32
 
-static const size_t MAX_TEST_BUFFER_LEN = 1024 * 256;
-static int g_check_flag = 0;
+static const size_t MAX_TEST_BUFFER_LEN     = 1024 * 256;
+static int g_check_flag                     = 0;
 static std::pair<size_t, size_t> g_recv_rec = std::make_pair(0, 0);
 static std::list<std::pair<size_t, size_t> > g_check_buff_sequence;
 
 #ifdef _WIN32
-    #define UNIT_TEST_LISTEN_ADDR "unix://\\\\.\\pipe\\unit_test.sock"
-    #define UNIT_TEST_INVALID_ADDR "unix://\\\\.\\pipe\\unit_test.invalid.sock"
+#define UNIT_TEST_LISTEN_ADDR "unix://\\\\.\\pipe\\unit_test.sock"
+#define UNIT_TEST_INVALID_ADDR "unix://\\\\.\\pipe\\unit_test.invalid.sock"
 #else
-    #define UNIT_TEST_LISTEN_ADDR "unix://unit_test.sock"
-    #define UNIT_TEST_INVALID_ADDR "unix://unit_test.invalid.sock"
+#define UNIT_TEST_LISTEN_ADDR "unix://unit_test.sock"
+#define UNIT_TEST_INVALID_ADDR "unix://unit_test.invalid.sock"
 #endif
 
-static void disconnected_callback_test_fn(
-    atbus::channel::io_stream_channel* channel,         // 事件触发的channel
-    atbus::channel::io_stream_connection* connection,   // 事件触发的连接
-    int status,                         // libuv传入的转态码
-    void*,                              // 额外参数(不同事件不同含义)
-    size_t s                            // 额外参数长度
-    ) {
+static void disconnected_callback_test_fn(atbus::channel::io_stream_channel *channel,       // 事件触发的channel
+                                          atbus::channel::io_stream_connection *connection, // 事件触发的连接
+                                          int status,                                       // libuv传入的转态码
+                                          void *,                                           // 额外参数(不同事件不同含义)
+                                          size_t                                            // 额外参数长度
+) {
     CASE_EXPECT_NE(NULL, channel);
     CASE_EXPECT_NE(NULL, connection);
     CASE_EXPECT_EQ(0, status);
@@ -49,13 +48,12 @@ static void disconnected_callback_test_fn(
     ++g_check_flag;
 }
 
-static void accepted_callback_test_fn(
-    atbus::channel::io_stream_channel* channel,         // 事件触发的channel
-    atbus::channel::io_stream_connection* connection,   // 事件触发的连接
-    int status,                         // libuv传入的转态码
-    void*,                              // 额外参数(不同事件不同含义)
-    size_t s                            // 额外参数长度
-    ) {
+static void accepted_callback_test_fn(atbus::channel::io_stream_channel *channel,       // 事件触发的channel
+                                      atbus::channel::io_stream_connection *connection, // 事件触发的连接
+                                      int status,                                       // libuv传入的转态码
+                                      void *,                                           // 额外参数(不同事件不同含义)
+                                      size_t                                            // 额外参数长度
+) {
     CASE_EXPECT_NE(NULL, channel);
     CASE_EXPECT_NE(NULL, connection);
     CASE_EXPECT_EQ(0, status);
@@ -64,19 +62,18 @@ static void accepted_callback_test_fn(
     if (0 != status) {
         CASE_MSG_INFO() << uv_err_name(channel->error_code) << ":" << uv_strerror(channel->error_code) << std::endl;
     } else {
-        CASE_MSG_INFO() << "accept connection: " << connection->addr.address<< std::endl;
+        CASE_MSG_INFO() << "accept connection: " << connection->addr.address << std::endl;
     }
 
     ++g_check_flag;
 }
 
-static void listen_callback_test_fn(
-    atbus::channel::io_stream_channel* channel,         // 事件触发的channel
-    atbus::channel::io_stream_connection* connection,   // 事件触发的连接
-    int status,                         // libuv传入的转态码
-    void*,                              // 额外参数(不同事件不同含义)
-    size_t s                            // 额外参数长度
-    ) {
+static void listen_callback_test_fn(atbus::channel::io_stream_channel *channel,       // 事件触发的channel
+                                    atbus::channel::io_stream_connection *connection, // 事件触发的连接
+                                    int status,                                       // libuv传入的转态码
+                                    void *,                                           // 额外参数(不同事件不同含义)
+                                    size_t                                            // 额外参数长度
+) {
     CASE_EXPECT_NE(NULL, channel);
     CASE_EXPECT_NE(NULL, connection);
     CASE_EXPECT_EQ(0, status);
@@ -88,28 +85,27 @@ static void listen_callback_test_fn(
     ++g_check_flag;
 }
 
-static void connected_callback_test_fn(
-    atbus::channel::io_stream_channel* channel,         // 事件触发的channel
-    atbus::channel::io_stream_connection* connection,   // 事件触发的连接
-    int status,                         // libuv传入的转态码
-    void*,                              // 额外参数(不同事件不同含义)
-    size_t s                            // 额外参数长度
-    ) {
+static void connected_callback_test_fn(atbus::channel::io_stream_channel *channel,       // 事件触发的channel
+                                       atbus::channel::io_stream_connection *connection, // 事件触发的连接
+                                       int status,                                       // libuv传入的转态码
+                                       void *,                                           // 额外参数(不同事件不同含义)
+                                       size_t                                            // 额外参数长度
+) {
     CASE_EXPECT_NE(NULL, channel);
     CASE_EXPECT_NE(NULL, connection);
     CASE_EXPECT_EQ(0, status);
     CASE_EXPECT_EQ(0, channel->error_code);
 
     if (0 != status) {
-        CASE_MSG_INFO() << uv_err_name(channel->error_code) << ":"<< uv_strerror(channel->error_code) << std::endl;
+        CASE_MSG_INFO() << uv_err_name(channel->error_code) << ":" << uv_strerror(channel->error_code) << std::endl;
     } else {
-        CASE_MSG_INFO() << "connect to " << connection->addr.address<< " success" << std::endl;
+        CASE_MSG_INFO() << "connect to " << connection->addr.address << " success" << std::endl;
     }
 
     ++g_check_flag;
 }
 
-static void setup_channel(atbus::channel::io_stream_channel& channel, const char* listen, const char* conn) {
+static void setup_channel(atbus::channel::io_stream_channel &channel, const char *listen, const char *conn) {
     atbus::channel::channel_address_t addr;
 
     int res = 0;
@@ -126,26 +122,25 @@ static void setup_channel(atbus::channel::io_stream_channel& channel, const char
     }
 }
 
-static char* get_test_buffer() {
+static char *get_test_buffer() {
     static char ret[MAX_TEST_BUFFER_LEN] = {0};
     if (0 != ret[0]) {
         return ret;
     }
 
-    for (size_t i = 0; i < MAX_TEST_BUFFER_LEN - 1; ++ i) {
+    for (size_t i = 0; i < MAX_TEST_BUFFER_LEN - 1; ++i) {
         ret[i] = 'A' + rand() % 26;
     }
 
     return ret;
 }
 
-static void recv_callback_check_fn(
-    atbus::channel::io_stream_channel* channel,         // 事件触发的channel
-    atbus::channel::io_stream_connection* connection,   // 事件触发的连接
-    int status,                         // libuv传入的转态码
-    void* input,                        // 额外参数(不同事件不同含义)
-    size_t s                            // 额外参数长度
-    ) {
+static void recv_callback_check_fn(atbus::channel::io_stream_channel *channel,       // 事件触发的channel
+                                   atbus::channel::io_stream_connection *connection, // 事件触发的连接
+                                   int status,                                       // libuv传入的转态码
+                                   void *input,                                      // 额外参数(不同事件不同含义)
+                                   size_t s                                          // 额外参数长度
+) {
     CASE_EXPECT_NE(NULL, channel);
     CASE_EXPECT_NE(NULL, connection);
 
@@ -166,13 +161,13 @@ static void recv_callback_check_fn(
         return;
     }
 
-    ++ g_recv_rec.first;
+    ++g_recv_rec.first;
     g_recv_rec.second += s;
 
     CASE_EXPECT_EQ(s, g_check_buff_sequence.front().second);
-    char* buff = get_test_buffer();
-    char* input_buff = reinterpret_cast<char*>(input);
-    for (size_t i = 0; i < g_check_buff_sequence.front().second; ++ i) {
+    char *buff       = get_test_buffer();
+    char *input_buff = reinterpret_cast<char *>(input);
+    for (size_t i = 0; i < g_check_buff_sequence.front().second; ++i) {
         CASE_EXPECT_EQ(buff[i + g_check_buff_sequence.front().first], input_buff[i]);
         if (buff[i + g_check_buff_sequence.front().first] != input_buff[i]) {
             break;
@@ -183,8 +178,7 @@ static void recv_callback_check_fn(
     ++g_check_flag;
 }
 
-CASE_TEST(channel, io_stream_unix_basic)
-{
+CASE_TEST(channel, io_stream_unix_basic) {
     atbus::adapter::loop_t loop;
     uv_loop_init(&loop);
 
@@ -211,7 +205,7 @@ CASE_TEST(channel, io_stream_unix_basic)
 
     svr.evt.callbacks[atbus::channel::io_stream_callback_evt_t::EN_FN_RECVED] = recv_callback_check_fn;
     cli.evt.callbacks[atbus::channel::io_stream_callback_evt_t::EN_FN_RECVED] = recv_callback_check_fn;
-    char* buf = get_test_buffer();
+    char *buf                                                                 = get_test_buffer();
 
     check_flag = g_check_flag;
     // small buffer
@@ -232,7 +226,7 @@ CASE_TEST(channel, io_stream_unix_basic)
 
     // many big buffer
     {
-        check_flag = g_check_flag;
+        check_flag                                                  = g_check_flag;
         atbus::channel::io_stream_channel::conn_pool_t::iterator it = svr.conn_pool.begin();
         // 跳过listen的socket
         if (it->second->addr.address == UNIT_TEST_LISTEN_ADDR) {
@@ -240,8 +234,8 @@ CASE_TEST(channel, io_stream_unix_basic)
         }
 
         size_t sum_size = 0;
-        g_recv_rec = std::make_pair(0, 0);
-        for (int i = 0; i < 153; ++ i) {
+        g_recv_rec      = std::make_pair(0, 0);
+        for (int i = 0; i < 153; ++i) {
             size_t s = static_cast<size_t>(rand() % 2048);
             size_t l = static_cast<size_t>(rand() % 10240) + 20 * 1024;
             atbus::channel::io_stream_send(it->second.get(), buf + s, l);
@@ -255,7 +249,8 @@ CASE_TEST(channel, io_stream_unix_basic)
             uv_run(&loop, UV_RUN_ONCE);
         }
 
-        CASE_MSG_INFO() << "recv " << g_recv_rec.second << " bytes data with " << g_recv_rec.first << " packages and checked done." << std::endl;
+        CASE_MSG_INFO() << "recv " << g_recv_rec.second << " bytes data with " << g_recv_rec.first << " packages and checked done."
+                        << std::endl;
     }
 
     atbus::channel::io_stream_close(&svr);
@@ -268,8 +263,7 @@ CASE_TEST(channel, io_stream_unix_basic)
 
 
 // reset by peer(client)
-CASE_TEST(channel, io_stream_unix_reset_by_client)
-{
+CASE_TEST(channel, io_stream_unix_reset_by_client) {
     atbus::channel::io_stream_channel svr, cli;
     atbus::channel::io_stream_init(&svr, NULL, NULL);
     atbus::channel::io_stream_init(&cli, NULL, NULL);
@@ -308,8 +302,7 @@ CASE_TEST(channel, io_stream_unix_reset_by_client)
 }
 
 // reset by peer(server)
-CASE_TEST(channel, io_stream_unix_reset_by_server)
-{
+CASE_TEST(channel, io_stream_unix_reset_by_server) {
     atbus::channel::io_stream_channel svr, cli;
     atbus::channel::io_stream_init(&svr, NULL, NULL);
     atbus::channel::io_stream_init(&cli, NULL, NULL);
@@ -346,13 +339,12 @@ CASE_TEST(channel, io_stream_unix_reset_by_server)
     atbus::channel::io_stream_close(&cli);
 }
 
-static void recv_size_err_callback_check_fn(
-    atbus::channel::io_stream_channel* channel,         // 事件触发的channel
-    atbus::channel::io_stream_connection* connection,   // 事件触发的连接
-    int status,                         // libuv传入的转态码
-    void* input,                        // 额外参数(不同事件不同含义)
-    size_t s                            // 额外参数长度
-    ) {
+static void recv_size_err_callback_check_fn(atbus::channel::io_stream_channel *channel,       // 事件触发的channel
+                                            atbus::channel::io_stream_connection *connection, // 事件触发的连接
+                                            int status,                                       // libuv传入的转态码
+                                            void *input,                                      // 额外参数(不同事件不同含义)
+                                            size_t                                            // 额外参数长度
+) {
     CASE_EXPECT_NE(NULL, channel);
     CASE_EXPECT_NE(NULL, connection);
 
@@ -373,8 +365,7 @@ static void recv_size_err_callback_check_fn(
 }
 
 // buffer recv/send size limit
-CASE_TEST(channel, io_stream_unix_size_extended)
-{
+CASE_TEST(channel, io_stream_unix_size_extended) {
     atbus::channel::io_stream_channel svr, cli;
     atbus::channel::io_stream_conf conf;
     atbus::channel::io_stream_init_configure(&conf);
@@ -382,9 +373,9 @@ CASE_TEST(channel, io_stream_unix_size_extended)
 
     atbus::channel::io_stream_init(&svr, NULL, &conf);
     atbus::channel::io_stream_init(&cli, NULL, &conf);
-    
-    svr.evt.callbacks[atbus::channel::io_stream_callback_evt_t::EN_FN_RECVED] = recv_size_err_callback_check_fn;
-    cli.evt.callbacks[atbus::channel::io_stream_callback_evt_t::EN_FN_RECVED] = recv_size_err_callback_check_fn;
+
+    svr.evt.callbacks[atbus::channel::io_stream_callback_evt_t::EN_FN_RECVED]       = recv_size_err_callback_check_fn;
+    cli.evt.callbacks[atbus::channel::io_stream_callback_evt_t::EN_FN_RECVED]       = recv_size_err_callback_check_fn;
     svr.evt.callbacks[atbus::channel::io_stream_callback_evt_t::EN_FN_DISCONNECTED] = disconnected_callback_test_fn;
     svr.evt.callbacks[atbus::channel::io_stream_callback_evt_t::EN_FN_DISCONNECTED] = disconnected_callback_test_fn;
 
@@ -436,13 +427,12 @@ CASE_TEST(channel, io_stream_unix_size_extended)
     atbus::channel::io_stream_close(&svr);
 }
 
-static void connect_failed_callback_test_fn(
-    atbus::channel::io_stream_channel* channel,         // 事件触发的channel
-    atbus::channel::io_stream_connection* connection,   // 事件触发的连接
-    int status,                         // libuv传入的转态码
-    void*,                              // 额外参数(不同事件不同含义)
-    size_t s                            // 额外参数长度
-    ) {
+static void connect_failed_callback_test_fn(atbus::channel::io_stream_channel *channel,       // 事件触发的channel
+                                            atbus::channel::io_stream_connection *connection, // 事件触发的连接
+                                            int status,                                       // libuv传入的转态码
+                                            void *,                                           // 额外参数(不同事件不同含义)
+                                            size_t                                            // 额外参数长度
+) {
     CASE_EXPECT_NE(NULL, channel);
     CASE_EXPECT_EQ(NULL, connection);
 
@@ -452,13 +442,12 @@ static void connect_failed_callback_test_fn(
     if (0 != channel->error_code) {
         CASE_MSG_INFO() << uv_err_name(channel->error_code) << ":" << uv_strerror(channel->error_code) << std::endl;
     }
-    
+
     ++g_check_flag;
 }
 
 // connect failed
-CASE_TEST(channel, io_stream_unix_connect_failed)
-{
+CASE_TEST(channel, io_stream_unix_connect_failed) {
     atbus::channel::io_stream_channel cli;
     atbus::channel::io_stream_init(&cli, NULL, NULL);
 

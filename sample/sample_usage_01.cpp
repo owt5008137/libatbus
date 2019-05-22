@@ -1,26 +1,4 @@
-使用示例
-======
-
-+ 配置里的 children_mask 决定了子节点的BUS ID范围，规则类似路由器。
-> 比如children_mask=8,BUS ID=0x12345678, 则0x12345600-0x123456FF都是它的子节点，0x12345778则是它的兄弟节点
-
-+ 父子节点之间会自动断线重连
-+ 拥有相同父节点的兄弟节点之间会自动按需断线重连
-+ 没有相同父节点的兄弟节点之间**不会自动断线重连**。建议使用心跳或其他机制重新执行***connect***api来维持在线信息
-
-
-监听和连接的地址目前支持:
-
-1. ipv4://IP地址:端口
-2. ipv6://IP地址:端口
-3. unix://Unix Socket地址（仅Unix like系统下有效）
-4. dns://域名:端口
-5. shm://共享内存Key（整数，仅本机通信有效，支持16进制或10进制表示，比如 shm://0x1234FF00 或 shm://305463040）
-6. mem://内存地址（整数，仅本机通信有效，支持16进制或10进制表示，内存通道必须先分配好。比如 mem://0x1234FF00 或 mem://305463040）
-
-最简单的完整代码流程如下：
-```cpp
-#include <cstdlib>
+﻿#include <cstdlib>
 #include <cstring>
 #include <ctime>
 #include <iomanip>
@@ -33,6 +11,7 @@
 #include "detail/libatbus_protocol.h"
 
 int main() {
+#if defined(UTIL_CONFIG_COMPILER_CXX_LAMBDAS) && UTIL_CONFIG_COMPILER_CXX_LAMBDAS
     // 初始化默认配置
     atbus::node::conf_t conf;
     atbus::node::default_conf(&conf);
@@ -86,7 +65,7 @@ int main() {
         // 设置接收到消息后的回调函数
         bool recved = false;
         node2->set_on_recv_handle([&recved](const atbus::node &n, const atbus::endpoint *ep, const atbus::connection *conn,
-                                            const atbus::protocol::msg &m, const void *buffer, size_t len) {
+                                            const atbus::protocol::msg &, const void *buffer, size_t len) {
             if (NULL != ep && NULL != conn) {
                 std::cout << "atbus node 0x" << std::ios::hex << n.get_id() << " receive data from 0x" << std::ios::hex << ep->get_id()
                           << "(connection: " << conn->get_address().address << "): ";
@@ -119,8 +98,8 @@ int main() {
     while (UV_EBUSY == uv_loop_close(&ev_loop)) {
         uv_run(&ev_loop, UV_RUN_ONCE);
     }
+#else
+    std::cout << "lambda not supported, ignore this sample" << std::endl;
+#endif
     return 0;
 }
-```
-
-编译时请包含msgpack、libuv和libatbus的include目录，链接atbus、atframe_utils和libuv

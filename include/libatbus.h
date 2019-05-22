@@ -7,8 +7,10 @@
 
 #pragma once
 
-#ifndef LIBATBUS_H_
-#define LIBATBUS_H_
+#ifndef LIBATBUS_H
+#define LIBATBUS_H
+
+#pragma once
 
 #include "atbus_node.h"
 

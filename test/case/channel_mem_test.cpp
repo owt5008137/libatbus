@@ -1,6 +1,4 @@
-﻿#include "config/compiler_features.h"
-#include "lock/atomic_int_type.h"
-#include <chrono>
+﻿#include <chrono>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
@@ -13,15 +11,20 @@
 #include <thread>
 
 
+#include "config/compiler_features.h"
+
 #include "detail/libatbus_channel_export.h"
-#include "frame/test_macros.h"
+#include "lock/atomic_int_type.h"
 #include <detail/libatbus_error.h>
+
+
+#include "frame/test_macros.h"
 
 
 CASE_TEST(channel, mem_siso) {
     using namespace atbus::channel;
     const size_t buffer_len = 512 * 1024 * 1024; // 512MB
-    char *buffer = new char[buffer_len];
+    char *buffer            = new char[buffer_len];
 
     mem_channel *channel = NULL;
 
@@ -30,19 +33,19 @@ CASE_TEST(channel, mem_siso) {
     // 4KB header
 
     // 数据初始化
-    char buf_group1[2][32] = {{0}};
-    char buf_group2[2][45] = {{0}};
-    char buf_group3[2][133] = {{0}};
-    char buf_group4[2][605] = {{0}};
+    char buf_group1[2][32]   = {{0}};
+    char buf_group2[2][45]   = {{0}};
+    char buf_group3[2][133]  = {{0}};
+    char buf_group4[2][605]  = {{0}};
     char buf_group5[2][1024] = {{0}};
-    size_t len_group[] = {32, 45, 133, 605, 1024};
-    size_t group_num = sizeof(len_group) / sizeof(size_t);
-    char *buf_group[] = {buf_group1[0], buf_group2[0], buf_group3[0], buf_group4[0], buf_group5[0]};
-    char *buf_rgroup[] = {buf_group1[1], buf_group2[1], buf_group3[1], buf_group4[1], buf_group5[1]};
+    size_t len_group[]       = {32, 45, 133, 605, 1024};
+    size_t group_num         = sizeof(len_group) / sizeof(size_t);
+    char *buf_group[]        = {buf_group1[0], buf_group2[0], buf_group3[0], buf_group4[0], buf_group5[0]};
+    char *buf_rgroup[]       = {buf_group1[1], buf_group2[1], buf_group3[1], buf_group4[1], buf_group5[1]};
 
     {
         size_t i = 0;
-        char j = 1;
+        char j   = 1;
 
         for (; i < group_num; ++i, ++j)
             for (size_t k = 0; k < len_group[i]; ++k)
@@ -58,8 +61,8 @@ CASE_TEST(channel, mem_siso) {
         // 单进程写压力
         {
             size_t sum_len = 0, times = 0;
-            int res = 0;
-            size_t i = 0;
+            int res    = 0;
+            size_t i   = 0;
             clock_t bt = clock();
             while (0 == res) {
                 if (first_break && 0 == --first_break) {
@@ -88,8 +91,8 @@ CASE_TEST(channel, mem_siso) {
         // 单进程读压力
         {
             size_t sum_len = 0, times = 0;
-            int res = 0;
-            size_t i = 0;
+            int res    = 0;
+            size_t i   = 0;
             clock_t bt = clock();
             while (0 == res) {
                 size_t len;
@@ -128,15 +131,26 @@ CASE_TEST(channel, mem_siso) {
 CASE_TEST(channel, mem_miso) {
     using namespace atbus::channel;
     const size_t buffer_len = 8 * 1024 * 1024; // 8MB
-    char *buffer = new char[buffer_len];
+    char *buffer            = new char[buffer_len];
 
     mem_channel *channel = NULL;
 
+    CASE_EXPECT_EQ(EN_ATBUS_ERR_CHANNEL_SIZE_TOO_SMALL, mem_attach(buffer, 4096, &channel, NULL));
+    CASE_EXPECT_EQ(EN_ATBUS_ERR_CHANNEL_SIZE_TOO_SMALL, mem_init(buffer, 4096, &channel, NULL));
     CASE_EXPECT_EQ(0, mem_init(buffer, buffer_len, &channel, NULL));
     CASE_EXPECT_NE(NULL, channel);
     // 4KB header
 
+    // set longer timeout when in unit test(appveyor ci timeout sometimes)
+    CASE_EXPECT_EQ(0, mem_configure_set_write_timeout(channel, 256));
+    CASE_EXPECT_EQ(256, mem_configure_get_write_timeout(channel));
+    CASE_EXPECT_EQ(0, mem_configure_set_write_retry_times(channel, 3));
+    CASE_EXPECT_EQ(3, mem_configure_get_write_retry_times(channel));
     srand(static_cast<unsigned>(time(NULL)));
+
+    CASE_EXPECT_EQ(EN_ATBUS_ERR_PARAMS, mem_send(NULL, NULL, 0));
+    CASE_EXPECT_EQ(EN_ATBUS_ERR_SUCCESS, mem_send(channel, NULL, 0));
+    CASE_EXPECT_EQ(EN_ATBUS_ERR_BUFF_LIMIT, mem_send(channel, buffer, buffer_len));
 
     int left_sec = 16;
     util::lock::atomic_int_type<size_t> sum_send_len;
@@ -149,20 +163,20 @@ CASE_TEST(channel, mem_miso) {
     sum_send_err.store(0);
     util::lock::atomic_int_type<size_t> sum_seq;
     sum_seq.store(0);
-    size_t sum_recv_len = 0;
-    size_t sum_recv_times = 0;
-    size_t sum_recv_err = 0;
+    size_t sum_recv_len        = 0;
+    size_t sum_recv_times      = 0;
+    size_t sum_recv_err        = 0;
     bool all_write_thread_exit = false;
 
-    // 创建8个写线程
-    const size_t wn = 8;
+    // 创建32个写线程
+    const size_t wn = 32;
     std::thread *write_threads[wn];
     for (size_t i = 0; i < wn; ++i) {
-        write_threads[i] = new std::thread([&] {
+        write_threads[i] = new std::thread([&left_sec, &sum_send_len, &sum_send_times, &sum_send_full, &sum_send_err, &sum_seq, channel] {
             size_t buf_pool[1024];
-            size_t seq_head = sum_seq.fetch_add(1);
+            size_t seq_head    = sum_seq.fetch_add(1);
             size_t head_offset = sizeof(size_t) * 6;
-            size_t head_len = sizeof(size_t) * 2;
+            size_t head_len    = sizeof(size_t) * 2;
             seq_head <<= head_offset;
 
             size_t seq_body = 0;
@@ -203,12 +217,12 @@ CASE_TEST(channel, mem_miso) {
     }
 
     // 读进程
-    std::thread *read_thread = new std::thread([&] {
+    std::thread *read_thread = new std::thread([&sum_recv_len, &sum_recv_times, &sum_recv_err, &all_write_thread_exit, channel] {
         size_t buff_recv[1024]; // 最大 4K-8K的包
 
-        size_t head_offset = sizeof(size_t) * 6;
-        size_t head_len = sizeof(size_t) * 2;
-        size_t data_seq[16] = {0};
+        size_t head_offset   = sizeof(size_t) * 6;
+        size_t head_len      = sizeof(size_t) * 2;
+        size_t data_seq[256] = {0};
         // bool dump_flag = true;
 
         while (true) {
@@ -240,8 +254,9 @@ CASE_TEST(channel, mem_miso) {
                     CASE_EXPECT_EQ(data_seq[rdh], rdd);
 
                     if (data_seq[rdh] != rdd) {
-                        mem_show_channel(channel, CASE_MSG_INFO() << "rdh=" << rdh << ", data_seq[rdh]=" << data_seq[rdh] << ", rdd=" << rdd
-                                                                  << std::endl,
+                        mem_show_channel(channel,
+                                         CASE_MSG_INFO()
+                                             << "rdh=" << rdh << ", data_seq[rdh]=" << data_seq[rdh] << ", rdd=" << rdd << std::endl,
                                          true, 16);
                     }
 
@@ -269,11 +284,13 @@ CASE_TEST(channel, mem_miso) {
             --left_sec;
             ++secs;
             CASE_THREAD_SLEEP_MS(1000);
+            std::pair<size_t, size_t> curent_cursor = ::atbus::channel::mem_last_action();
             CASE_MSG_INFO() << "NO." << secs << " second(s)" << std::endl;
             CASE_MSG_INFO() << "recv(" << sum_recv_times << " times, " << sum_recv_len << " Bytes) err " << sum_recv_err << " times"
                             << std::endl;
             CASE_MSG_INFO() << "send(" << sum_send_times.load() << " times, " << sum_send_len.load() << " Bytes) "
                             << "full " << sum_send_full.load() << " times, err " << sum_send_err.load() << " times" << std::endl;
+            CASE_MSG_INFO() << "\tdata nodes [" << curent_cursor.first << ", " << curent_cursor.second << ")" << std::endl;
 
         } while (left_sec >= 0);
     }
@@ -287,6 +304,18 @@ CASE_TEST(channel, mem_miso) {
     all_write_thread_exit = true;
     read_thread->join();
     delete read_thread;
+
+    mem_stats_block_error stats_error;
+    mem_stats_get_error(channel, stats_error);
+    CASE_EXPECT_EQ(0, stats_error.write_check_sequence_failed_count);
+    CASE_EXPECT_EQ(0, stats_error.write_retry_count);
+
+    CASE_EXPECT_EQ(0, stats_error.read_bad_node_count);
+    CASE_EXPECT_EQ(0, stats_error.read_bad_block_count);
+    CASE_EXPECT_EQ(0, stats_error.read_write_timeout_count);
+    CASE_EXPECT_EQ(0, stats_error.read_check_block_size_failed_count);
+    CASE_EXPECT_EQ(0, stats_error.read_check_node_size_failed_count);
+    CASE_EXPECT_EQ(0, stats_error.read_check_hash_failed_count);
     delete[] buffer;
 }
 

@@ -6,6 +6,7 @@
 #include <ctime>
 #include <stdint.h>
 
+#include <common/string_oprs.h>
 
 #include "detail/buffer.h"
 
@@ -26,12 +27,12 @@ namespace atbus {
             return ret;
         }
 
-        ret->id_ = id;
+        ret->id_            = id;
         ret->children_mask_ = children_mask;
-        ret->pid_ = pid;
-        ret->hostname_ = hn;
+        ret->pid_           = pid;
+        ret->hostname_      = hn;
 
-        ret->owner_ = owner;
+        ret->owner_   = owner;
         ret->watcher_ = ret;
         return ret;
     }
@@ -65,6 +66,8 @@ namespace atbus {
             (*iter)->reset();
         }
         data_conn_.clear();
+
+        listen_address_.clear();
 
         flags_.reset();
         // 只要endpoint存在，则它一定存在于owner_的某个位置。
@@ -101,7 +104,7 @@ namespace atbus {
         return (id & c_mask) != (id_ & c_mask) && (0 == father_mask || (id & f_mask) == (id_ & f_mask));
     }
 
-    bool endpoint::is_parent_node(bus_id_t id, bus_id_t father_id, uint32_t father_mask) {
+    bool endpoint::is_parent_node(bus_id_t id, bus_id_t father_id, uint32_t /*father_mask*/) {
         // bus_id_t mask = ~((1 << father_mask) - 1);
         return id == father_id;
     }
@@ -230,16 +233,37 @@ namespace atbus {
         return watcher_.lock();
     }
 
+    void endpoint::add_listen(const std::string &addr) {
+        if (addr.empty()) {
+            return;
+        }
+
+        if (0 == UTIL_STRFUNC_STRNCASE_CMP("mem:", addr.c_str(), 4) || 0 == UTIL_STRFUNC_STRNCASE_CMP("shm:", addr.c_str(), 4)) {
+            flags_.set(flag_t::HAS_LISTEN_PORC, true);
+        } else {
+            flags_.set(flag_t::HAS_LISTEN_FD, true);
+        }
+
+        listen_address_.push_back(addr);
+    }
+
     bool endpoint::sort_connection_cmp_fn(const connection::ptr_t &left, const connection::ptr_t &right) {
-        if (left->check_flag(connection::flag_t::ACCESS_SHARE_ADDR) != right->check_flag(connection::flag_t::ACCESS_SHARE_ADDR)) {
-            return left->check_flag(connection::flag_t::ACCESS_SHARE_ADDR);
+        int lscore = 0, rscore = 0;
+        if (!left->check_flag(connection::flag_t::ACCESS_SHARE_ADDR)) {
+            lscore += 0x08;
+        }
+        if (!left->check_flag(connection::flag_t::ACCESS_SHARE_HOST)) {
+            lscore += 0x04;
         }
 
-        if (left->check_flag(connection::flag_t::ACCESS_SHARE_HOST) != right->check_flag(connection::flag_t::ACCESS_SHARE_HOST)) {
-            return left->check_flag(connection::flag_t::ACCESS_SHARE_HOST);
+        if (!right->check_flag(connection::flag_t::ACCESS_SHARE_ADDR)) {
+            rscore += 0x08;
+        }
+        if (!right->check_flag(connection::flag_t::ACCESS_SHARE_HOST)) {
+            rscore += 0x04;
         }
 
-        return false;
+        return lscore < rscore;
     }
 
     connection *endpoint::get_ctrl_connection(endpoint *ep) const {
@@ -258,9 +282,7 @@ namespace atbus {
         return NULL;
     }
 
-    connection *endpoint::get_data_connection(endpoint *ep) const {
-        return get_data_connection(ep, true);
-    }
+    connection *endpoint::get_data_connection(endpoint *ep) const { return get_data_connection(ep, true); }
 
     connection *endpoint::get_data_connection(endpoint *ep, bool reuse_ctrl) const {
         if (NULL == ep) {
@@ -323,7 +345,7 @@ namespace atbus {
     uint32_t endpoint::get_stat_ping() const { return stat_.unfinished_ping; }
 
     void endpoint::set_stat_ping_delay(time_t pd, time_t pong_tm) {
-        stat_.ping_delay = pd;
+        stat_.ping_delay     = pd;
         stat_.last_pong_time = pong_tm;
     }
 
@@ -450,4 +472,4 @@ namespace atbus {
 
         return ret;
     }
-}
+} // namespace atbus

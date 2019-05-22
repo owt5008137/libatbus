@@ -15,7 +15,7 @@
 #include "detail/libatbus_channel_export.h"
 #include <detail/libatbus_error.h>
 
-
+#if defined(ATBUS_CHANNEL_SHM)
 int main(int argc, char *argv[]) {
     if (argc < 2) {
         printf("usage: %s <shm key> [need node info: 0 or 1] [node data size]\n", argv[0]);
@@ -30,7 +30,7 @@ int main(int argc, char *argv[]) {
     } else {
         shm_key = (key_t)strtol(argv[1], NULL, 10);
     }
-    long need_node_info = 0;
+    long need_node_info   = 0;
     size_t need_node_data = 0;
 
     if (argc > 2) {
@@ -50,3 +50,9 @@ int main(int argc, char *argv[]) {
     shm_show_channel(channel, std::cout, !!need_node_info, need_node_data);
     return 0;
 }
+#else
+int main() {
+    puts("shm channel disabled");
+    return 0;
+}
+#endif
